@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario Académico 2026</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --color-primary: #1a365d;
+            --color-secondary: #2c5282;
+            --color-accent: #ed8936;
+            --color-accent-light: #fbd38d;
+            --color-background: #f7fafc;
+            --color-surface: #ffffff;
+            --color-text: #2d3748;
+            --color-text-light: #718096;
+            --color-success: #48bb78;
+            --color-past: #a0aec0;
+            --color-future: #4299e1;
+            
+            --font-display: 'Playfair Display', Georgia, serif;
+            --font-body: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
+            
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+            
+            --border-radius: 12px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 40px rgba(0,0,0,0.15);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--color-background);
+            color: var(--color-text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-lg);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.5;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .header h1 {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 700;
+            margin-bottom: var(--spacing-xs);
+            letter-spacing: -0.02em;
+        }
+
+        .header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        /* Year Selector */
+        .year-selector {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+            flex-wrap: wrap;
+        }
+
+        .year-btn {
+            background: rgba(255,255,255,0.15);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: var(--spacing-xs) var(--spacing-md);
+            border-radius: 50px;
+            font-family: var(--font-body);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .year-btn:hover {
+            background: rgba(255,255,255,0.25);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+        }
+
+        .year-btn.active {
+            background: white;
+            color: var(--color-primary);
+            border-color: white;
+        }
+
+        /* Current Date Display */
+        .current-date-display {
+            background: var(--color-surface);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md) var(--spacing-lg);
+            margin: calc(-1 * var(--spacing-lg)) auto var(--spacing-lg);
+            max-width: 500px;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            z-index: 10;
+        }
+
+        .current-date-display .label {
+            font-size: 0.85rem;
+            color: var(--color-text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .current-date-display .date {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            color: var(--color-primary);
+            font-weight: 600;
+        }
+
+        .current-date-display .next-update {
+            font-size: 0.8rem;
+            color: var(--color-text-light);
+            margin-top: var(--spacing-xs);
+        }
+
+        .current-date-display .next-update span {
+            color: var(--color-accent);
+            font-weight: 600;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: var(--spacing-lg);
+        }
+
+        /* Progress Section */
+        .progress-section {
+            background: var(--color-surface);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+        }
+
+        .progress-title {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            color: var(--color-primary);
+        }
+
+        .progress-stats {
+            display: flex;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+        }
+
+        .progress-stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .progress-stat .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .progress-stat .dot.past { background: var(--color-past); }
+        .progress-stat .dot.current { background: var(--color-accent); }
+        .progress-stat .dot.future { background: var(--color-future); }
+
+        .progress-bar-container {
+            height: 12px;
+            background: #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-past) 0%, var(--color-accent) 100%);
+            border-radius: 6px;
+            transition: width 1s ease-out;
+            position: relative;
+        }
+
+        .progress-marker {
+            position: absolute;
+            right: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            background: var(--color-accent);
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: var(--shadow-md);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(237, 137, 54, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(237, 137, 54, 0); }
+        }
+
+        /* Filter Buttons */
+        .filter-section {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-xs);
+            margin-bottom: var(--spacing-lg);
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: var(--color-surface);
+            border: 2px solid #e2e8f0;
+            color: var(--color-text-light);
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .filter-btn:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+
+        .filter-btn.active {
+            background: var(--color-primary);
+            border-color: var(--color-primary);
+            color: white;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, var(--color-past) 0%, var(--color-accent) 50%, var(--color-future) 100%);
+            border-radius: 2px;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding: var(--spacing-md) var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+            background: var(--color-surface);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            animation: fadeInUp 0.5s ease-out forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .timeline-item:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateX(5px);
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            background: var(--color-surface);
+            border: 3px solid var(--color-past);
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+
+        .timeline-item.past {
+            opacity: 0.6;
+        }
+
+        .timeline-item.past::before {
+            background: var(--color-past);
+            border-color: var(--color-past);
+        }
+
+        .timeline-item.current {
+            border-left: 4px solid var(--color-accent);
+            background: linear-gradient(90deg, var(--color-accent-light) 0%, var(--color-surface) 30%);
+            opacity: 1 !important;
+        }
+
+        .timeline-item.current::before {
+            background: var(--color-accent);
+            border-color: var(--color-accent);
+            width: 18px;
+            height: 18px;
+            left: -26px;
+            box-shadow: 0 0 0 4px rgba(237, 137, 54, 0.2);
+            animation: currentPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes currentPulse {
+            0%, 100% { box-shadow: 0 0 0 4px rgba(237, 137, 54, 0.2); }
+            50% { box-shadow: 0 0 0 8px rgba(237, 137, 54, 0.1); }
+        }
+
+        .timeline-item.future::before {
+            background: var(--color-surface);
+            border-color: var(--color-future);
+        }
+
+        .timeline-date {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--color-text-light);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            flex-wrap: wrap;
+        }
+
+        .timeline-item.current .timeline-date {
+            color: var(--color-accent);
+        }
+
+        .timeline-date-text {
+            font-weight: 600;
+        }
+
+        .days-badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 50px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .days-badge.past {
+            background: #e2e8f0;
+            color: var(--color-text-light);
+        }
+
+        .days-badge.today {
+            background: var(--color-accent);
+            color: white;
+            animation: badgePulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes badgePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .days-badge.soon {
+            background: #c6f6d5;
+            color: #276749;
+        }
+
+        .days-badge.future {
+            background: #bee3f8;
+            color: #2b6cb0;
+        }
+
+        .timeline-event {
+            font-size: 1.05rem;
+            color: var(--color-text);
+            font-weight: 500;
+        }
+
+        /* Current Event Highlight */
+        .current-highlight {
+            background: linear-gradient(135deg, var(--color-accent) 0%, #dd6b20 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .current-highlight::before {
+            content: '📍';
+            font-size: 3rem;
+            position: absolute;
+            top: -10px;
+            right: 20px;
+            opacity: 0.3;
+        }
+
+        .current-highlight .label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            opacity: 0.9;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .current-highlight .event-name {
+            font-family: var(--font-display);
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+            line-height: 1.3;
+        }
+
+        .current-highlight .event-date {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .current-highlight .countdown {
+            margin-top: var(--spacing-md);
+            padding-top: var(--spacing-md);
+            border-top: 1px solid rgba(255,255,255,0.2);
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-lg);
+        }
+
+        .countdown-item {
+            text-align: center;
+        }
+
+        .countdown-value {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .countdown-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.8;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: var(--spacing-xl);
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e2e8f0;
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto var(--spacing-md);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error State */
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            text-align: center;
+        }
+
+        .error-message h3 {
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .error-message code {
+            display: block;
+            background: rgba(0,0,0,0.1);
+            padding: var(--spacing-sm);
+            border-radius: 6px;
+            margin-top: var(--spacing-sm);
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+
+        /* Month Separator */
+        .month-separator {
+            text-align: center;
+            margin: var(--spacing-lg) 0 var(--spacing-md);
+            position: relative;
+        }
+
+        .month-separator::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 1px;
+            background: #e2e8f0;
+        }
+
+        .month-separator span {
+            background: var(--color-background);
+            padding: 0 var(--spacing-md);
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            color: var(--color-primary);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: var(--spacing-lg);
+            color: var(--color-text-light);
+            font-size: 0.85rem;
+        }
+
+        .footer a {
+            color: var(--color-primary);
+            text-decoration: none;
+        }
+
+        /* Hidden class */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .container {
+                padding: var(--spacing-md);
+            }
+
+            .timeline {
+                padding-left: 25px;
+            }
+
+            .timeline-item::before {
+                left: -19px;
+                width: 12px;
+                height: 12px;
+            }
+
+            .timeline-item.current::before {
+                left: -21px;
+                width: 16px;
+                height: 16px;
+            }
+
+            .countdown {
+                gap: var(--spacing-md) !important;
+            }
+
+            .countdown-value {
+                font-size: 1.5rem !important;
+            }
+
+            .progress-stats {
+                flex-direction: column;
+                gap: var(--spacing-xs);
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <h1>📚 Calendario Académico</h1>
+            <p class="subtitle">Facultad de Ciencias Naturales y Ciencias de la Salud - UNPSJB</p>
+            <div class="year-selector" id="yearSelector"></div>
+        </div>
+    </header>
+
+    <div class="current-date-display">
+        <div class="label">Fecha actual</div>
+        <div class="date" id="currentDateText"></div>
+        <div class="next-update">
+            Próxima actualización en <span id="nextUpdate">--:--:--</span>
+        </div>
+    </div>
+
+    <main class="container">
+        <div id="currentHighlight" class="current-highlight" style="display: none;"></div>
+
+        <section class="progress-section">
+            <div class="progress-header">
+                <h2 class="progress-title">Progreso del Año Académico</h2>
+                <div class="progress-stats">
+                    <div class="progress-stat">
+                        <span class="dot past"></span>
+                        <span id="pastCount">0</span> pasados
+                    </div>
+                    <div class="progress-stat">
+                        <span class="dot current"></span>
+                        <span id="currentCount">0</span> en curso
+                    </div>
+                    <div class="progress-stat">
+                        <span class="dot future"></span>
+                        <span id="futureCount">0</span> pendientes
+                    </div>
+                </div>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar" style="width: 0%">
+                    <div class="progress-marker"></div>
+                </div>
+            </div>
+        </section>
+
+        <div class="filter-section">
+            <button class="filter-btn active" data-filter="all">Todos</button>
+            <button class="filter-btn" data-filter="past">Pasados</button>
+            <button class="filter-btn" data-filter="current">En curso / Próximo</button>
+            <button class="filter-btn" data-filter="future">Pendientes</button>
+        </div>
+
+        <div id="timelineContainer">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Cargando calendario...</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>Última actualización: <span id="lastUpdate">--</span></p>
+        <p>Datos desde <a href="#" id="sheetLink" target="_blank">Google Sheets</a></p>
+    </footer>
+
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    
+    <script>
+        // =====================================================
+        // 🔧 CONFIGURACIÓN - MODIFICA AQUÍ PARA CAMBIAR EL AÑO
+        // =====================================================
+        const SHEET_CONFIG = {
+            // ID de tu hoja de cálculo de Google Sheets
+            spreadsheetId: '1Vs1uwOuLp7zhsQvP4RKUzoDNs-74GDa-BAg1nD4ip8c',
+            
+            // Hojas disponibles (añade más años aquí)
+            sheets: {
+                '2026': '2026',
+                // '2027': '2027',  // Descomenta cuando añadas la hoja 2027
+                // '2028': '2028',  // Descomenta cuando añadas la hoja 2028
+            },
+            
+            // Año seleccionado por defecto
+            defaultYear: '2026'
+        };
+        // =====================================================
+
+        let currentYear = SHEET_CONFIG.defaultYear;
+        let calendarData = [];
+        let currentFilter = 'all';
+        let countdownInterval;
+
+        const MESES = [
+            'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+        ];
+
+        const DIAS = [
+            'Domingo', 'Lunes', 'Martes', 'Miércoles', 
+            'Jueves', 'Viernes', 'Sábado'
+        ];
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            updateCurrentDate();
+            startUpdateCountdown();
+            renderYearButtons();
+            setupFilterButtons();
+            loadCalendarData();
+            
+            document.getElementById('sheetLink').href = 
+                `https://docs.google.com/spreadsheets/d/${SHEET_CONFIG.spreadsheetId}/edit`;
+        });
+
+        function updateCurrentDate() {
+            const now = new Date();
+            const dia = DIAS[now.getDay()];
+            const fecha = now.getDate();
+            const mes = MESES[now.getMonth()];
+            const año = now.getFullYear();
+            
+            document.getElementById('currentDateText').textContent = 
+                `${dia}, ${fecha} de ${mes} de ${año}`;
+        }
+
+        function startUpdateCountdown() {
+            function update() {
+                const now = new Date();
+                const tomorrow = new Date(now);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                tomorrow.setHours(0, 0, 0, 0);
+                
+                const diff = tomorrow - now;
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                
+                document.getElementById('nextUpdate').textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+            
+            update();
+            setInterval(update, 1000);
+        }
+
+        function renderYearButtons() {
+            const container = document.getElementById('yearSelector');
+            container.innerHTML = '';
+            
+            Object.keys(SHEET_CONFIG.sheets).forEach(year => {
+                const btn = document.createElement('button');
+                btn.className = `year-btn ${year === currentYear ? 'active' : ''}`;
+                btn.textContent = year;
+                btn.onclick = () => selectYear(year);
+                container.appendChild(btn);
+            });
+        }
+
+        function setupFilterButtons() {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentFilter = btn.dataset.filter;
+                    renderTimeline();
+                });
+            });
+        }
+
+        function selectYear(year) {
+            currentYear = year;
+            renderYearButtons();
+            loadCalendarData();
+        }
+
+        function loadCalendarData() {
+            const container = document.getElementById('timelineContainer');
+            container.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Cargando calendario ${currentYear}...</p>
+                </div>
+            `;
+
+            google.charts.load('current', { packages: ['corechart'] });
+            google.charts.setOnLoadCallback(() => {
+                const sheetName = SHEET_CONFIG.sheets[currentYear];
+                const query = new google.visualization.Query(
+                    `https://docs.google.com/spreadsheets/d/${SHEET_CONFIG.spreadsheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}`
+                );
+                
+                query.send(handleQueryResponse);
+            });
+        }
+
+        function handleQueryResponse(response) {
+            const container = document.getElementById('timelineContainer');
+            
+            if (response.isError()) {
+                container.innerHTML = `
+                    <div class="error-message">
+                        <h3>⚠️ Error al cargar los datos</h3>
+                        <p>Asegúrate de que la hoja de cálculo esté <strong>publicada en la web</strong>.</p>
+                        <p>Pasos: Archivo → Compartir → Publicar en la web → Publicar</p>
+                        <code>Error: ${response.getMessage()}</code>
+                    </div>
+                `;
+                return;
+            }
+
+            const dataTable = response.getDataTable();
+            calendarData = [];
+
+            for (let i = 0; i < dataTable.getNumberOfRows(); i++) {
+                const fechaValue = dataTable.getValue(i, 0);
+                const acontecimiento = dataTable.getValue(i, 1);
+                
+                if (fechaValue && acontecimiento) {
+                    let fechaStr = '';
+                    
+                    if (fechaValue instanceof Date) {
+                        // Formato desde Date object
+                        fechaStr = `${fechaValue.getDate().toString().padStart(2, '0')}/${(fechaValue.getMonth() + 1).toString().padStart(2, '0')}/${fechaValue.getFullYear().toString().slice(-2)}`;
+                    } else {
+                        fechaStr = String(fechaValue);
+                    }
+                    
+                    // Parsear la fecha (puede ser rango o fecha simple)
+                    const fechaInfo = parseFechaCompleja(fechaStr);
+                    
+                    if (fechaInfo) {
+                        calendarData.push({
+                            fechaInicio: fechaInfo.inicio,
+                            fechaFin: fechaInfo.fin,
+                            fechaOriginal: fechaStr,
+                            esRango: fechaInfo.esRango,
+                            acontecimiento: acontecimiento
+                        });
+                    }
+                }
+            }
+
+            // Ordenar por fecha de inicio
+            calendarData.sort((a, b) => a.fechaInicio - b.fechaInicio);
+
+            renderTimeline();
+            updateProgress();
+            renderCurrentHighlight();
+            
+            document.getElementById('lastUpdate').textContent = 
+                new Date().toLocaleString('es-AR');
+        }
+
+        // Parser de fechas complejas (rangos, días múltiples, etc.)
+        function parseFechaCompleja(fechaStr) {
+            // Limpiar espacios
+            fechaStr = fechaStr.trim();
+            
+            // Detectar año base (buscar /26, /27, etc.)
+            let añoBase = 2026;
+            const añoMatch = fechaStr.match(/\/(\d{2})(?:\D|$)/);
+            if (añoMatch) {
+                añoBase = 2000 + parseInt(añoMatch[1]);
+            }
+            
+            // Caso: Rango con "al" (ej: "04/02 al 06/03/26" o "09/02 al 27/02/26")
+            if (fechaStr.includes(' al ')) {
+                const partes = fechaStr.split(' al ');
+                const inicio = parseFechaSimple(partes[0], añoBase);
+                const fin = parseFechaSimple(partes[1], añoBase);
+                
+                if (inicio && fin) {
+                    // Si el fin es antes que el inicio, probablemente cruza de año
+                    if (fin < inicio) {
+                        fin.setFullYear(fin.getFullYear() + 1);
+                    }
+                    return { inicio, fin, esRango: true };
+                }
+            }
+            
+            // Caso: Días múltiples con "y" (ej: "16 y 17/02/26")
+            if (fechaStr.includes(' y ') && !fechaStr.includes(' al ')) {
+                const match = fechaStr.match(/(\d{1,2})\s*y\s*(\d{1,2})\/(\d{1,2})(?:\/(\d{2}))?/);
+                if (match) {
+                    const dia1 = parseInt(match[1]);
+                    const dia2 = parseInt(match[2]);
+                    const mes = parseInt(match[3]) - 1;
+                    const año = match[4] ? 2000 + parseInt(match[4]) : añoBase;
+                    
+                    const inicio = new Date(año, mes, dia1);
+                    const fin = new Date(año, mes, dia2);
+                    return { inicio, fin, esRango: true };
+                }
+            }
+            
+            // Caso: Fecha simple (ej: "02/01/26" o "24/03/26")
+            const fechaSimple = parseFechaSimple(fechaStr, añoBase);
+            if (fechaSimple) {
+                return { inicio: fechaSimple, fin: fechaSimple, esRango: false };
+            }
+            
+            return null;
+        }
+
+        function parseFechaSimple(str, añoBase) {
+            str = str.trim();
+            
+            // Formato: DD/MM/YY o DD/MM
+            const match = str.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+            if (match) {
+                const dia = parseInt(match[1]);
+                const mes = parseInt(match[2]) - 1;
+                let año = añoBase;
+                
+                if (match[3]) {
+                    año = match[3].length === 2 ? 2000 + parseInt(match[3]) : parseInt(match[3]);
+                }
+                
+                return new Date(año, mes, dia);
+            }
+            
+            return null;
+        }
+
+        function formatDateRange(item) {
+            if (item.esRango) {
+                const inicioStr = formatDateShort(item.fechaInicio);
+                const finStr = formatDateShort(item.fechaFin);
+                return `${inicioStr} al ${finStr}`;
+            }
+            return formatDateLong(item.fechaInicio);
+        }
+
+        function formatDateShort(date) {
+            return `${date.getDate()}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+        }
+
+        function formatDateLong(date) {
+            const dia = DIAS[date.getDay()];
+            const fecha = date.getDate();
+            const mes = MESES[date.getMonth()];
+            return `${dia} ${fecha} de ${mes}`;
+        }
+
+        function getStatus(item) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const inicio = new Date(item.fechaInicio);
+            inicio.setHours(0, 0, 0, 0);
+            
+            const fin = new Date(item.fechaFin);
+            fin.setHours(0, 0, 0, 0);
+            
+            if (today > fin) return 'past';
+            if (today >= inicio && today <= fin) return 'current';
+            return 'future';
+        }
+
+        function getDaysDiff(item) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const inicio = new Date(item.fechaInicio);
+            inicio.setHours(0, 0, 0, 0);
+            
+            const fin = new Date(item.fechaFin);
+            fin.setHours(0, 0, 0, 0);
+            
+            const status = getStatus(item);
+            
+            if (status === 'past') {
+                return Math.ceil((fin - today) / (1000 * 60 * 60 * 24));
+            } else if (status === 'current') {
+                return 0;
+            } else {
+                return Math.ceil((inicio - today) / (1000 * 60 * 60 * 24));
+            }
+        }
+
+        function getDaysBadge(item) {
+            const status = getStatus(item);
+            const daysDiff = getDaysDiff(item);
+            
+            if (status === 'current') {
+                if (item.esRango) {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const fin = new Date(item.fechaFin);
+                    fin.setHours(0, 0, 0, 0);
+                    const diasRestantes = Math.ceil((fin - today) / (1000 * 60 * 60 * 24));
+                    
+                    if (diasRestantes === 0) {
+                        return `<span class="days-badge today">¡Último día!</span>`;
+                    }
+                    return `<span class="days-badge today">En curso (${diasRestantes} días restantes)</span>`;
+                }
+                return `<span class="days-badge today">¡Hoy!</span>`;
+            }
+            
+            if (status === 'past') {
+                if (daysDiff === -1) return `<span class="days-badge past">Ayer</span>`;
+                return `<span class="days-badge past">Hace ${Math.abs(daysDiff)} días</span>`;
+            }
+            
+            if (daysDiff === 1) return `<span class="days-badge soon">¡Mañana!</span>`;
+            if (daysDiff <= 7) return `<span class="days-badge soon">En ${daysDiff} días</span>`;
+            if (daysDiff <= 30) return `<span class="days-badge future">En ${daysDiff} días</span>`;
+            
+            const semanas = Math.floor(daysDiff / 7);
+            if (semanas < 8) return `<span class="days-badge future">En ${semanas} semanas</span>`;
+            
+            const meses = Math.floor(daysDiff / 30);
+            return `<span class="days-badge future">En ${meses} meses</span>`;
+        }
+
+        function renderTimeline() {
+            const container = document.getElementById('timelineContainer');
+            
+            if (calendarData.length === 0) {
+                container.innerHTML = `
+                    <div class="error-message">
+                        <h3>📭 No hay eventos</h3>
+                        <p>No se encontraron eventos en el calendario ${currentYear}.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Filtrar datos
+            let filteredData = calendarData;
+            if (currentFilter !== 'all') {
+                filteredData = calendarData.filter(item => {
+                    const status = getStatus(item);
+                    if (currentFilter === 'current') {
+                        return status === 'current' || (status === 'future' && getDaysDiff(item) <= 7);
+                    }
+                    return status === currentFilter;
+                });
+            }
+
+            if (filteredData.length === 0) {
+                container.innerHTML = `
+                    <div class="error-message" style="background: #e2e8f0; color: var(--color-text);">
+                        <h3>📭 Sin resultados</h3>
+                        <p>No hay eventos con el filtro seleccionado.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="timeline">';
+            let currentMonth = -1;
+            
+            filteredData.forEach((item, index) => {
+                const status = getStatus(item);
+                const month = item.fechaInicio.getMonth();
+                
+                // Separador de mes
+                if (month !== currentMonth && currentFilter === 'all') {
+                    currentMonth = month;
+                    html += `
+                        <div class="month-separator">
+                            <span>${MESES[month]} ${item.fechaInicio.getFullYear()}</span>
+                        </div>
+                    `;
+                }
+                
+                html += `
+                    <div class="timeline-item ${status}" style="animation-delay: ${index * 0.03}s">
+                        <div class="timeline-date">
+                            <span class="timeline-date-text">${formatDateRange(item)}</span>
+                            ${getDaysBadge(item)}
+                        </div>
+                        <div class="timeline-event">${item.acontecimiento}</div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+
+            // Scroll al evento actual o próximo
+            setTimeout(() => {
+                const currentItem = document.querySelector('.timeline-item.current');
+                if (currentItem) {
+                    currentItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    const futureItem = document.querySelector('.timeline-item.future');
+                    if (futureItem) {
+                        futureItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            }, 600);
+        }
+
+        function updateProgress() {
+            let past = 0, current = 0, future = 0;
+            
+            calendarData.forEach(item => {
+                const status = getStatus(item);
+                if (status === 'past') past++;
+                else if (status === 'current') current++;
+                else future++;
+            });
+
+            document.getElementById('pastCount').textContent = past;
+            document.getElementById('currentCount').textContent = current;
+            document.getElementById('futureCount').textContent = future;
+
+            const total = calendarData.length;
+            const progress = total > 0 ? ((past + current * 0.5) / total) * 100 : 0;
+            
+            setTimeout(() => {
+                document.getElementById('progressBar').style.width = `${Math.min(progress, 100)}%`;
+            }, 300);
+        }
+
+        function renderCurrentHighlight() {
+            const container = document.getElementById('currentHighlight');
+            
+            // Buscar evento actual o próximo
+            let targetEvent = calendarData.find(item => getStatus(item) === 'current');
+            let isCurrentlyHappening = !!targetEvent;
+            
+            if (!targetEvent) {
+                targetEvent = calendarData.find(item => getStatus(item) === 'future');
+            }
+            
+            if (!targetEvent) {
+                container.style.display = 'none';
+                return;
+            }
+
+            const daysDiff = getDaysDiff(targetEvent);
+            
+            // Calcular countdown
+            const now = new Date();
+            let targetDate;
+            
+            if (isCurrentlyHappening) {
+                targetDate = new Date(targetEvent.fechaFin);
+                targetDate.setHours(23, 59, 59, 999);
+            } else {
+                targetDate = new Date(targetEvent.fechaInicio);
+                targetDate.setHours(0, 0, 0, 0);
+            }
+            
+            const diffMs = targetDate - now;
+            const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+            let countdownLabel = isCurrentlyHappening ? 'Tiempo restante' : 'Tiempo para el próximo evento';
+
+            container.innerHTML = `
+                <div class="label">${isCurrentlyHappening ? '🔴 Evento en Curso' : '🎯 Próximo Evento'}</div>
+                <div class="event-name">${targetEvent.acontecimiento}</div>
+                <div class="event-date">${formatDateRange(targetEvent)}</div>
+                <div class="countdown">
+                    <div class="countdown-item">
+                        <div class="countdown-value">${Math.max(0, days)}</div>
+                        <div class="countdown-label">días</div>
+                    </div>
+                    <div class="countdown-item">
+                        <div class="countdown-value">${Math.max(0, hours)}</div>
+                        <div class="countdown-label">horas</div>
+                    </div>
+                    <div class="countdown-item">
+                        <div class="countdown-value">${Math.max(0, minutes)}</div>
+                        <div class="countdown-label">minutos</div>
+                    </div>
+                </div>
+            `;
+            
+            container.style.display = 'block';
+
+            // Actualizar countdown cada minuto
+            if (countdownInterval) clearInterval(countdownInterval);
+            countdownInterval = setInterval(renderCurrentHighlight, 60000);
+        }
+    </script>
+</body>
+</html>
