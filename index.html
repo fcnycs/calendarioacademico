@@ -708,11 +708,12 @@
             // ID de tu hoja de cálculo de Google Sheets
             spreadsheetId: '1Vs1uwOuLp7zhsQvP4RKUzoDNs-74GDa-BAg1nD4ip8c',
             
-            // Hojas disponibles (añade más años aquí)
+            // Hojas disponibles con su año correspondiente
+            // El valor numérico es el año que se usará para las fechas
             sheets: {
-                '2026': '2026',
-                // '2027': '2027',  // Descomenta cuando añadas la hoja 2027
-                // '2028': '2028',  // Descomenta cuando añadas la hoja 2028
+                '2026': { sheetName: '2026', year: 2026 },
+                // '2027': { sheetName: '2027', year: 2027 },
+                // '2028': { sheetName: '2028', year: 2028 },
             },
             
             // Año seleccionado por defecto
@@ -819,9 +820,9 @@
 
             google.charts.load('current', { packages: ['corechart'] });
             google.charts.setOnLoadCallback(() => {
-                const sheetName = SHEET_CONFIG.sheets[currentYear];
+                const sheetConfig = SHEET_CONFIG.sheets[currentYear];
                 const query = new google.visualization.Query(
-                    `https://docs.google.com/spreadsheets/d/${SHEET_CONFIG.spreadsheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}`
+                    `https://docs.google.com/spreadsheets/d/${SHEET_CONFIG.spreadsheetId}/gviz/tq?sheet=${encodeURIComponent(sheetConfig.sheetName)}`
                 );
                 
                 query.send(handleQueryResponse);
@@ -845,6 +846,9 @@
 
             const dataTable = response.getDataTable();
             calendarData = [];
+            
+            // Obtener el año base de la configuración
+            const añoBase = SHEET_CONFIG.sheets[currentYear].year;
 
             for (let i = 0; i < dataTable.getNumberOfRows(); i++) {
                 const fechaValue = dataTable.getValue(i, 0);
@@ -854,14 +858,17 @@
                     let fechaStr = '';
                     
                     if (fechaValue instanceof Date) {
-                        // Formato desde Date object
-                        fechaStr = `${fechaValue.getDate().toString().padStart(2, '0')}/${(fechaValue.getMonth() + 1).toString().padStart(2, '0')}/${fechaValue.getFullYear().toString().slice(-2)}`;
+                        // Google Sheets devuelve Date - extraer día y mes
+                        // El año puede venir mal (1926 en vez de 2026), así que lo ignoramos
+                        const dia = fechaValue.getDate();
+                        const mes = fechaValue.getMonth() + 1;
+                        fechaStr = `${dia.toString().padStart(2, '0')}/${mes.toString().padStart(2, '0')}`;
                     } else {
                         fechaStr = String(fechaValue);
                     }
                     
-                    // Parsear la fecha (puede ser rango o fecha simple)
-                    const fechaInfo = parseFechaCompleja(fechaStr);
+                    // Parsear la fecha usando el año base de la configuración
+                    const fechaInfo = parseFechaCompleja(fechaStr, añoBase);
                     
                     if (fechaInfo) {
                         calendarData.push({
@@ -887,26 +894,41 @@
         }
 
         // Parser de fechas complejas (rangos, días múltiples, etc.)
-        function parseFechaCompleja(fechaStr) {
-            // Limpiar espacios
+        function parseFechaCompleja(fechaStr, añoBase) {
             fechaStr = fechaStr.trim();
             
-            // Detectar año base (buscar /26, /27, etc.)
-            let añoBase = 2026;
-            const añoMatch = fechaStr.match(/\/(\d{2})(?:\D|$)/);
-            if (añoMatch) {
-                añoBase = 2000 + parseInt(añoMatch[1]);
+            // Detectar si hay un año explícito en la cadena (ej: /26, /27)
+            // y determinar el año para fechas que cruzan de año
+            let añoInicio = añoBase;
+            let añoFin = añoBase;
+            
+            // Buscar años explícitos en el string
+            const añosEncontrados = fechaStr.match(/\/(\d{2})(?:\D|$)/g);
+            if (añosEncontrados && añosEncontrados.length > 0) {
+                const ultimoAño = añosEncontrados[añosEncontrados.length - 1];
+                const añoNum = parseInt(ultimoAño.replace(/\D/g, ''));
+                if (añoNum >= 0 && añoNum <= 99) {
+                    añoFin = 2000 + añoNum;
+                    // Si solo hay un año, usarlo para ambos
+                    if (añosEncontrados.length === 1) {
+                        añoInicio = añoFin;
+                    } else {
+                        const primerAño = añosEncontrados[0];
+                        const añoNumInicio = parseInt(primerAño.replace(/\D/g, ''));
+                        añoInicio = 2000 + añoNumInicio;
+                    }
+                }
             }
             
             // Caso: Rango con "al" (ej: "04/02 al 06/03/26" o "09/02 al 27/02/26")
             if (fechaStr.includes(' al ')) {
                 const partes = fechaStr.split(' al ');
-                const inicio = parseFechaSimple(partes[0], añoBase);
-                const fin = parseFechaSimple(partes[1], añoBase);
+                const inicio = parseFechaSimple(partes[0], añoInicio);
+                const fin = parseFechaSimple(partes[1], añoFin);
                 
                 if (inicio && fin) {
-                    // Si el fin es antes que el inicio, probablemente cruza de año
-                    if (fin < inicio) {
+                    // Ajustar si el mes de inicio es mayor que el de fin (cruce de año)
+                    if (inicio.getMonth() > fin.getMonth() && inicio.getFullYear() === fin.getFullYear()) {
                         fin.setFullYear(fin.getFullYear() + 1);
                     }
                     return { inicio, fin, esRango: true };
@@ -928,7 +950,7 @@
                 }
             }
             
-            // Caso: Fecha simple (ej: "02/01/26" o "24/03/26")
+            // Caso: Fecha simple (ej: "02/01/26" o "24/03" o "02/01")
             const fechaSimple = parseFechaSimple(fechaStr, añoBase);
             if (fechaSimple) {
                 return { inicio: fechaSimple, fin: fechaSimple, esRango: false };
@@ -961,13 +983,18 @@
             if (item.esRango) {
                 const inicioStr = formatDateShort(item.fechaInicio);
                 const finStr = formatDateShort(item.fechaFin);
+                
+                // Si son del mismo mes, mostrar más compacto
+                if (item.fechaInicio.getMonth() === item.fechaFin.getMonth()) {
+                    return `${item.fechaInicio.getDate()} al ${item.fechaFin.getDate()} de ${MESES[item.fechaInicio.getMonth()]}`;
+                }
                 return `${inicioStr} al ${finStr}`;
             }
             return formatDateLong(item.fechaInicio);
         }
 
         function formatDateShort(date) {
-            return `${date.getDate()}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            return `${date.getDate()} de ${MESES[date.getMonth()]}`;
         }
 
         function formatDateLong(date) {
@@ -985,7 +1012,7 @@
             inicio.setHours(0, 0, 0, 0);
             
             const fin = new Date(item.fechaFin);
-            fin.setHours(0, 0, 0, 0);
+            fin.setHours(23, 59, 59, 999);
             
             if (today > fin) return 'past';
             if (today >= inicio && today <= fin) return 'current';
@@ -1038,6 +1065,7 @@
                 return `<span class="days-badge past">Hace ${Math.abs(daysDiff)} días</span>`;
             }
             
+            // Future
             if (daysDiff === 1) return `<span class="days-badge soon">¡Mañana!</span>`;
             if (daysDiff <= 7) return `<span class="days-badge soon">En ${daysDiff} días</span>`;
             if (daysDiff <= 30) return `<span class="days-badge future">En ${daysDiff} días</span>`;
@@ -1046,7 +1074,7 @@
             if (semanas < 8) return `<span class="days-badge future">En ${semanas} semanas</span>`;
             
             const meses = Math.floor(daysDiff / 30);
-            return `<span class="days-badge future">En ${meses} meses</span>`;
+            return `<span class="days-badge future">En ~${meses} meses</span>`;
         }
 
         function renderTimeline() {
@@ -1167,8 +1195,6 @@
                 return;
             }
 
-            const daysDiff = getDaysDiff(targetEvent);
-            
             // Calcular countdown
             const now = new Date();
             let targetDate;
@@ -1182,11 +1208,9 @@
             }
             
             const diffMs = targetDate - now;
-            const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-            let countdownLabel = isCurrentlyHappening ? 'Tiempo restante' : 'Tiempo para el próximo evento';
+            const days = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+            const hours = Math.max(0, Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)));
+            const minutes = Math.max(0, Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60)));
 
             container.innerHTML = `
                 <div class="label">${isCurrentlyHappening ? '🔴 Evento en Curso' : '🎯 Próximo Evento'}</div>
@@ -1194,15 +1218,15 @@
                 <div class="event-date">${formatDateRange(targetEvent)}</div>
                 <div class="countdown">
                     <div class="countdown-item">
-                        <div class="countdown-value">${Math.max(0, days)}</div>
+                        <div class="countdown-value">${days}</div>
                         <div class="countdown-label">días</div>
                     </div>
                     <div class="countdown-item">
-                        <div class="countdown-value">${Math.max(0, hours)}</div>
+                        <div class="countdown-value">${hours}</div>
                         <div class="countdown-label">horas</div>
                     </div>
                     <div class="countdown-item">
-                        <div class="countdown-value">${Math.max(0, minutes)}</div>
+                        <div class="countdown-value">${minutes}</div>
                         <div class="countdown-label">minutos</div>
                     </div>
                 </div>
