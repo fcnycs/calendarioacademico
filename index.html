@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendario Académico 2026</title>
+    <title>Calendario Académico - FCNyCS UNPSJB</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -58,7 +58,7 @@
         .header {
             background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
             color: white;
-            padding: var(--spacing-xl) var(--spacing-lg);
+            padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-xl);
             text-align: center;
             position: relative;
             overflow: hidden;
@@ -80,16 +80,50 @@
             z-index: 1;
         }
 
+        /* Logo Section */
+        .logo-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .logo-img {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .logo-text {
+            text-align: left;
+        }
+
+        .logo-text .university {
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            opacity: 0.9;
+        }
+
+        .logo-text .faculty {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            max-width: 200px;
+            line-height: 1.3;
+        }
+
         .header h1 {
             font-family: var(--font-display);
-            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-size: clamp(1.8rem, 5vw, 3rem);
             font-weight: 700;
             margin-bottom: var(--spacing-xs);
             letter-spacing: -0.02em;
         }
 
         .header .subtitle {
-            font-size: 1.1rem;
+            font-size: 1rem;
             opacity: 0.9;
             font-weight: 300;
         }
@@ -598,6 +632,24 @@
 
         /* Responsive */
         @media (max-width: 640px) {
+            .header {
+                padding: var(--spacing-md) var(--spacing-md) var(--spacing-xl);
+            }
+
+            .logo-section {
+                flex-direction: column;
+                gap: var(--spacing-sm);
+            }
+
+            .logo-text {
+                text-align: center;
+            }
+
+            .logo-img {
+                width: 60px;
+                height: 60px;
+            }
+
             .container {
                 padding: var(--spacing-md);
             }
@@ -636,8 +688,15 @@
 <body>
     <header class="header">
         <div class="header-content">
+            <div class="logo-section">
+                <img src="logo_s.png" alt="UNPSJB Logo" class="logo-img">
+                <div class="logo-text">
+                    <div class="university">UNPSJB</div>
+                    <div class="faculty">Facultad de Ciencias Naturales y Ciencias de la Salud</div>
+                </div>
+            </div>
             <h1>📚 Calendario Académico</h1>
-            <p class="subtitle">Facultad de Ciencias Naturales y Ciencias de la Salud - UNPSJB</p>
+            <p class="subtitle">Ciclo Lectivo <span id="currentYearDisplay">2026</span></p>
             <div class="year-selector" id="yearSelector"></div>
         </div>
     </header>
@@ -709,11 +768,9 @@
             spreadsheetId: '1Vs1uwOuLp7zhsQvP4RKUzoDNs-74GDa-BAg1nD4ip8c',
             
             // Hojas disponibles con su año correspondiente
-            // El valor numérico es el año que se usará para las fechas
             sheets: {
                 '2026': { sheetName: '2026', year: 2026 },
                 // '2027': { sheetName: '2027', year: 2027 },
-                // '2028': { sheetName: '2028', year: 2028 },
             },
             
             // Año seleccionado por defecto
@@ -790,6 +847,8 @@
                 btn.onclick = () => selectYear(year);
                 container.appendChild(btn);
             });
+
+            document.getElementById('currentYearDisplay').textContent = currentYear;
         }
 
         function setupFilterButtons() {
@@ -851,33 +910,39 @@
             const añoBase = SHEET_CONFIG.sheets[currentYear].year;
 
             for (let i = 0; i < dataTable.getNumberOfRows(); i++) {
-                const fechaValue = dataTable.getValue(i, 0);
                 const acontecimiento = dataTable.getValue(i, 1);
                 
-                if (fechaValue && acontecimiento) {
-                    let fechaStr = '';
+                if (acontecimiento) {
+                    // IMPORTANTE: Usar getFormattedValue para obtener el string exacto de la celda
+                    // getValue puede devolver un Date con año incorrecto
+                    let fechaStr = dataTable.getFormattedValue(i, 0);
                     
-                    if (fechaValue instanceof Date) {
-                        // Google Sheets devuelve Date - extraer día y mes
-                        // El año puede venir mal (1926 en vez de 2026), así que lo ignoramos
-                        const dia = fechaValue.getDate();
-                        const mes = fechaValue.getMonth() + 1;
-                        fechaStr = `${dia.toString().padStart(2, '0')}/${mes.toString().padStart(2, '0')}`;
-                    } else {
-                        fechaStr = String(fechaValue);
+                    // Si getFormattedValue no funciona, intentar con getValue
+                    if (!fechaStr || fechaStr.trim() === '') {
+                        const fechaValue = dataTable.getValue(i, 0);
+                        if (fechaValue instanceof Date) {
+                            // Extraer solo día y mes, el año lo ponemos nosotros
+                            const d = fechaValue.getDate();
+                            const m = fechaValue.getMonth() + 1;
+                            fechaStr = `${d}/${m}`;
+                        } else if (fechaValue) {
+                            fechaStr = String(fechaValue);
+                        }
                     }
                     
-                    // Parsear la fecha usando el año base de la configuración
-                    const fechaInfo = parseFechaCompleja(fechaStr, añoBase);
-                    
-                    if (fechaInfo) {
-                        calendarData.push({
-                            fechaInicio: fechaInfo.inicio,
-                            fechaFin: fechaInfo.fin,
-                            fechaOriginal: fechaStr,
-                            esRango: fechaInfo.esRango,
-                            acontecimiento: acontecimiento
-                        });
+                    if (fechaStr) {
+                        // Parsear la fecha usando el año base configurado
+                        const fechaInfo = parseFechaDesdeString(fechaStr, añoBase);
+                        
+                        if (fechaInfo) {
+                            calendarData.push({
+                                fechaInicio: fechaInfo.inicio,
+                                fechaFin: fechaInfo.fin,
+                                fechaOriginal: fechaStr,
+                                esRango: fechaInfo.esRango,
+                                acontecimiento: acontecimiento
+                            });
+                        }
                     }
                 }
             }
@@ -893,42 +958,42 @@
                 new Date().toLocaleString('es-AR');
         }
 
-        // Parser de fechas complejas (rangos, días múltiples, etc.)
-        function parseFechaCompleja(fechaStr, añoBase) {
+        // Parser de fechas desde string
+        function parseFechaDesdeString(fechaStr, añoBase) {
+            if (!fechaStr || fechaStr.trim() === '') return null;
+            
             fechaStr = fechaStr.trim();
             
-            // Detectar si hay un año explícito en la cadena (ej: /26, /27)
-            // y determinar el año para fechas que cruzan de año
-            let añoInicio = añoBase;
-            let añoFin = añoBase;
-            
-            // Buscar años explícitos en el string
-            const añosEncontrados = fechaStr.match(/\/(\d{2})(?:\D|$)/g);
-            if (añosEncontrados && añosEncontrados.length > 0) {
-                const ultimoAño = añosEncontrados[añosEncontrados.length - 1];
-                const añoNum = parseInt(ultimoAño.replace(/\D/g, ''));
-                if (añoNum >= 0 && añoNum <= 99) {
-                    añoFin = 2000 + añoNum;
-                    // Si solo hay un año, usarlo para ambos
-                    if (añosEncontrados.length === 1) {
-                        añoInicio = añoFin;
-                    } else {
-                        const primerAño = añosEncontrados[0];
-                        const añoNumInicio = parseInt(primerAño.replace(/\D/g, ''));
-                        añoInicio = 2000 + añoNumInicio;
-                    }
+            // Función auxiliar para determinar el año correcto
+            function getAño(str, defaultAño) {
+                // Buscar /26, /27, etc. en el string
+                const match = str.match(/\/(\d{2})(?:\D|$)/);
+                if (match) {
+                    const añoCorto = parseInt(match[1]);
+                    // Años 00-50 se consideran 2000s, 51-99 se consideran 1900s
+                    // Pero para calendario académico, siempre 2000s
+                    return 2000 + añoCorto;
                 }
+                return defaultAño;
             }
             
             // Caso: Rango con "al" (ej: "04/02 al 06/03/26" o "09/02 al 27/02/26")
             if (fechaStr.includes(' al ')) {
                 const partes = fechaStr.split(' al ');
-                const inicio = parseFechaSimple(partes[0], añoInicio);
-                const fin = parseFechaSimple(partes[1], añoFin);
+                const strInicio = partes[0].trim();
+                const strFin = partes[1].trim();
+                
+                // El año se toma del string completo o del fin (que suele tenerlo)
+                const añoFin = getAño(strFin, añoBase);
+                const añoInicio = getAño(strInicio, añoFin); // Si inicio no tiene año, usar el del fin
+                
+                const inicio = parseFechaSolo(strInicio, añoInicio);
+                const fin = parseFechaSolo(strFin, añoFin);
                 
                 if (inicio && fin) {
-                    // Ajustar si el mes de inicio es mayor que el de fin (cruce de año)
-                    if (inicio.getMonth() > fin.getMonth() && inicio.getFullYear() === fin.getFullYear()) {
+                    // Si el inicio es después del fin (ej: dic a enero), ajustar
+                    if (inicio > fin) {
+                        // El fin debe ser del año siguiente
                         fin.setFullYear(fin.getFullYear() + 1);
                     }
                     return { inicio, fin, esRango: true };
@@ -937,43 +1002,55 @@
             
             // Caso: Días múltiples con "y" (ej: "16 y 17/02/26")
             if (fechaStr.includes(' y ') && !fechaStr.includes(' al ')) {
-                const match = fechaStr.match(/(\d{1,2})\s*y\s*(\d{1,2})\/(\d{1,2})(?:\/(\d{2}))?/);
+                const match = fechaStr.match(/(\d{1,2})\s*y\s*(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
                 if (match) {
                     const dia1 = parseInt(match[1]);
                     const dia2 = parseInt(match[2]);
                     const mes = parseInt(match[3]) - 1;
-                    const año = match[4] ? 2000 + parseInt(match[4]) : añoBase;
+                    let año = añoBase;
+                    if (match[4]) {
+                        año = match[4].length === 2 ? 2000 + parseInt(match[4]) : parseInt(match[4]);
+                    }
                     
-                    const inicio = new Date(año, mes, dia1);
-                    const fin = new Date(año, mes, dia2);
-                    return { inicio, fin, esRango: true };
+                    return {
+                        inicio: new Date(año, mes, dia1),
+                        fin: new Date(año, mes, dia2),
+                        esRango: true
+                    };
                 }
             }
             
-            // Caso: Fecha simple (ej: "02/01/26" o "24/03" o "02/01")
-            const fechaSimple = parseFechaSimple(fechaStr, añoBase);
-            if (fechaSimple) {
-                return { inicio: fechaSimple, fin: fechaSimple, esRango: false };
+            // Fecha simple
+            const año = getAño(fechaStr, añoBase);
+            const fecha = parseFechaSolo(fechaStr, año);
+            if (fecha) {
+                return { inicio: fecha, fin: fecha, esRango: false };
             }
             
             return null;
         }
-
-        function parseFechaSimple(str, añoBase) {
+        
+        // Parsea una fecha simple (sin rangos)
+        function parseFechaSolo(str, año) {
+            if (!str) return null;
             str = str.trim();
             
-            // Formato: DD/MM/YY o DD/MM
+            // Formato: DD/MM o DD/MM/YY o DD/MM/YYYY
             const match = str.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
             if (match) {
                 const dia = parseInt(match[1]);
-                const mes = parseInt(match[2]) - 1;
-                let año = añoBase;
+                const mes = parseInt(match[2]) - 1; // JavaScript months are 0-indexed
+                let añoFinal = año;
                 
                 if (match[3]) {
-                    año = match[3].length === 2 ? 2000 + parseInt(match[3]) : parseInt(match[3]);
+                    añoFinal = match[3].length === 2 ? 2000 + parseInt(match[3]) : parseInt(match[3]);
                 }
                 
-                return new Date(año, mes, dia);
+                // Validar que sea una fecha válida
+                const fecha = new Date(añoFinal, mes, dia);
+                if (fecha.getDate() === dia && fecha.getMonth() === mes) {
+                    return fecha;
+                }
             }
             
             return null;
@@ -981,14 +1058,11 @@
 
         function formatDateRange(item) {
             if (item.esRango) {
-                const inicioStr = formatDateShort(item.fechaInicio);
-                const finStr = formatDateShort(item.fechaFin);
-                
-                // Si son del mismo mes, mostrar más compacto
-                if (item.fechaInicio.getMonth() === item.fechaFin.getMonth()) {
+                if (item.fechaInicio.getMonth() === item.fechaFin.getMonth() &&
+                    item.fechaInicio.getFullYear() === item.fechaFin.getFullYear()) {
                     return `${item.fechaInicio.getDate()} al ${item.fechaFin.getDate()} de ${MESES[item.fechaInicio.getMonth()]}`;
                 }
-                return `${inicioStr} al ${finStr}`;
+                return `${formatDateShort(item.fechaInicio)} al ${formatDateShort(item.fechaFin)}`;
             }
             return formatDateLong(item.fechaInicio);
         }
@@ -1061,8 +1135,13 @@
             }
             
             if (status === 'past') {
-                if (daysDiff === -1) return `<span class="days-badge past">Ayer</span>`;
-                return `<span class="days-badge past">Hace ${Math.abs(daysDiff)} días</span>`;
+                const absDays = Math.abs(daysDiff);
+                if (absDays === 1) return `<span class="days-badge past">Ayer</span>`;
+                if (absDays < 30) return `<span class="days-badge past">Hace ${absDays} días</span>`;
+                const semanas = Math.floor(absDays / 7);
+                if (semanas < 8) return `<span class="days-badge past">Hace ${semanas} semanas</span>`;
+                const meses = Math.floor(absDays / 30);
+                return `<span class="days-badge past">Hace ${meses} meses</span>`;
             }
             
             // Future
@@ -1090,7 +1169,6 @@
                 return;
             }
 
-            // Filtrar datos
             let filteredData = calendarData;
             if (currentFilter !== 'all') {
                 filteredData = calendarData.filter(item => {
@@ -1114,17 +1192,20 @@
 
             let html = '<div class="timeline">';
             let currentMonth = -1;
+            let currentYearDisplay = -1;
             
             filteredData.forEach((item, index) => {
                 const status = getStatus(item);
                 const month = item.fechaInicio.getMonth();
+                const year = item.fechaInicio.getFullYear();
                 
                 // Separador de mes
-                if (month !== currentMonth && currentFilter === 'all') {
+                if ((month !== currentMonth || year !== currentYearDisplay) && currentFilter === 'all') {
                     currentMonth = month;
+                    currentYearDisplay = year;
                     html += `
                         <div class="month-separator">
-                            <span>${MESES[month]} ${item.fechaInicio.getFullYear()}</span>
+                            <span>${MESES[month]} ${year}</span>
                         </div>
                     `;
                 }
@@ -1182,7 +1263,6 @@
         function renderCurrentHighlight() {
             const container = document.getElementById('currentHighlight');
             
-            // Buscar evento actual o próximo
             let targetEvent = calendarData.find(item => getStatus(item) === 'current');
             let isCurrentlyHappening = !!targetEvent;
             
@@ -1195,7 +1275,6 @@
                 return;
             }
 
-            // Calcular countdown
             const now = new Date();
             let targetDate;
             
@@ -1234,7 +1313,6 @@
             
             container.style.display = 'block';
 
-            // Actualizar countdown cada minuto
             if (countdownInterval) clearInterval(countdownInterval);
             countdownInterval = setInterval(renderCurrentHighlight, 60000);
         }
