@@ -913,27 +913,35 @@
                 const acontecimiento = dataTable.getValue(i, 1);
                 
                 if (acontecimiento) {
-                    // IMPORTANTE: Usar getFormattedValue para obtener el string exacto de la celda
-                    // getValue puede devolver un Date con año incorrecto
-                    let fechaStr = dataTable.getFormattedValue(i, 0);
+                    const fechaValue = dataTable.getValue(i, 0);
+                    let dia = null;
+                    let mes = null;
+                    let fechaStr = '';
                     
-                    // Si getFormattedValue no funciona, intentar con getValue
-                    if (!fechaStr || fechaStr.trim() === '') {
-                        const fechaValue = dataTable.getValue(i, 0);
-                        if (fechaValue instanceof Date) {
-                            // Extraer solo día y mes, el año lo ponemos nosotros
-                            const d = fechaValue.getDate();
-                            const m = fechaValue.getMonth() + 1;
-                            fechaStr = `${d}/${m}`;
-                        } else if (fechaValue) {
-                            fechaStr = String(fechaValue);
-                        }
+                    // Extraer día y mes del Date object (ignorando el año que viene mal)
+                    if (fechaValue instanceof Date) {
+                        dia = fechaValue.getDate();
+                        mes = fechaValue.getMonth(); // 0-indexed
+                        fechaStr = dataTable.getFormattedValue(i, 0) || `${dia}/${mes + 1}`;
+                    } else if (fechaValue) {
+                        fechaStr = String(fechaValue);
                     }
                     
-                    if (fechaStr) {
-                        // Parsear la fecha usando el año base configurado
+                    if (dia !== null && mes !== null) {
+                        // Tenemos día y mes directo del Date - crear fecha con año correcto
+                        const fechaInfo = crearFechaConAñoCorrecto(dia, mes, fechaStr, añoBase);
+                        if (fechaInfo) {
+                            calendarData.push({
+                                fechaInicio: fechaInfo.inicio,
+                                fechaFin: fechaInfo.fin,
+                                fechaOriginal: fechaStr,
+                                esRango: fechaInfo.esRango,
+                                acontecimiento: acontecimiento
+                            });
+                        }
+                    } else if (fechaStr) {
+                        // Solo tenemos string - parsearlo
                         const fechaInfo = parseFechaDesdeString(fechaStr, añoBase);
-                        
                         if (fechaInfo) {
                             calendarData.push({
                                 fechaInicio: fechaInfo.inicio,
@@ -957,6 +965,39 @@
             document.getElementById('lastUpdate').textContent = 
                 new Date().toLocaleString('es-AR');
         }
+        
+        // Crear fecha usando día/mes del Date y año de la configuración
+        function crearFechaConAñoCorrecto(dia, mes, fechaStr, añoBase) {
+            // Detectar si el string indica un año diferente (ej: /27 para 2027)
+            let año = añoBase;
+            
+            // Buscar año explícito en el string formateado
+            const matchAño = fechaStr.match(/\/(\d{2})(?:\D|$)/g);
+            if (matchAño && matchAño.length > 0) {
+                // Tomar el último año encontrado
+                const ultimoMatch = matchAño[matchAño.length - 1];
+                const añoCorto = parseInt(ultimoMatch.replace(/\D/g, ''));
+                // Solo aceptar años entre 24 y 30 (2024-2030)
+                if (añoCorto >= 24 && añoCorto <= 30) {
+                    año = 2000 + añoCorto;
+                }
+            }
+            
+            // Verificar si es un rango (contiene "al")
+            if (fechaStr.includes(' al ') || fechaStr.includes('al')) {
+                // Es un rango - necesitamos parsear el string completo
+                return parseFechaDesdeString(fechaStr, añoBase);
+            }
+            
+            // Verificar si tiene múltiples días (contiene "y")
+            if (fechaStr.includes(' y ')) {
+                return parseFechaDesdeString(fechaStr, añoBase);
+            }
+            
+            // Fecha simple
+            const fecha = new Date(año, mes, dia);
+            return { inicio: fecha, fin: fecha, esRango: false };
+        }
 
         // Parser de fechas desde string
         function parseFechaDesdeString(fechaStr, añoBase) {
@@ -965,16 +1006,19 @@
             fechaStr = fechaStr.trim();
             
             // Función auxiliar para determinar el año correcto
-            function getAño(str, defaultAño) {
-                // Buscar /26, /27, etc. en el string
-                const match = str.match(/\/(\d{2})(?:\D|$)/);
-                if (match) {
-                    const añoCorto = parseInt(match[1]);
-                    // Años 00-50 se consideran 2000s, 51-99 se consideran 1900s
-                    // Pero para calendario académico, siempre 2000s
-                    return 2000 + añoCorto;
+            function extraerAñoDelString(str) {
+                // Buscar patrón /XX al final del string o antes de espacio
+                // Solo considerar como año si es 24-30 (2024-2030)
+                const matches = str.match(/\/(\d{2})(?:\s|$|[^\d])/g);
+                if (matches) {
+                    for (let i = matches.length - 1; i >= 0; i--) {
+                        const añoCorto = parseInt(matches[i].replace(/\D/g, ''));
+                        if (añoCorto >= 24 && añoCorto <= 30) {
+                            return 2000 + añoCorto;
+                        }
+                    }
                 }
-                return defaultAño;
+                return null;
             }
             
             // Caso: Rango con "al" (ej: "04/02 al 06/03/26" o "09/02 al 27/02/26")
@@ -983,17 +1027,16 @@
                 const strInicio = partes[0].trim();
                 const strFin = partes[1].trim();
                 
-                // El año se toma del string completo o del fin (que suele tenerlo)
-                const añoFin = getAño(strFin, añoBase);
-                const añoInicio = getAño(strInicio, añoFin); // Si inicio no tiene año, usar el del fin
+                // Extraer año del string completo
+                const añoExplicito = extraerAñoDelString(fechaStr);
+                const añoUsar = añoExplicito || añoBase;
                 
-                const inicio = parseFechaSolo(strInicio, añoInicio);
-                const fin = parseFechaSolo(strFin, añoFin);
+                const inicio = parseFechaSolo(strInicio, añoUsar);
+                const fin = parseFechaSolo(strFin, añoUsar);
                 
                 if (inicio && fin) {
-                    // Si el inicio es después del fin (ej: dic a enero), ajustar
+                    // Si el inicio es después del fin, el fin es del año siguiente
                     if (inicio > fin) {
-                        // El fin debe ser del año siguiente
                         fin.setFullYear(fin.getFullYear() + 1);
                     }
                     return { inicio, fin, esRango: true };
@@ -1002,14 +1045,18 @@
             
             // Caso: Días múltiples con "y" (ej: "16 y 17/02/26")
             if (fechaStr.includes(' y ') && !fechaStr.includes(' al ')) {
-                const match = fechaStr.match(/(\d{1,2})\s*y\s*(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+                const match = fechaStr.match(/(\d{1,2})\s*y\s*(\d{1,2})\/(\d{1,2})(?:\/(\d{2}))?/);
                 if (match) {
                     const dia1 = parseInt(match[1]);
                     const dia2 = parseInt(match[2]);
                     const mes = parseInt(match[3]) - 1;
+                    
                     let año = añoBase;
                     if (match[4]) {
-                        año = match[4].length === 2 ? 2000 + parseInt(match[4]) : parseInt(match[4]);
+                        const añoCorto = parseInt(match[4]);
+                        if (añoCorto >= 24 && añoCorto <= 30) {
+                            año = 2000 + añoCorto;
+                        }
                     }
                     
                     return {
@@ -1021,8 +1068,8 @@
             }
             
             // Fecha simple
-            const año = getAño(fechaStr, añoBase);
-            const fecha = parseFechaSolo(fechaStr, año);
+            const añoExplicito = extraerAñoDelString(fechaStr);
+            const fecha = parseFechaSolo(fechaStr, añoExplicito || añoBase);
             if (fecha) {
                 return { inicio: fecha, fin: fecha, esRango: false };
             }
@@ -1042,8 +1089,21 @@
                 const mes = parseInt(match[2]) - 1; // JavaScript months are 0-indexed
                 let añoFinal = año;
                 
+                // Si tiene año explícito, verificar si es válido (24-30)
                 if (match[3]) {
-                    añoFinal = match[3].length === 2 ? 2000 + parseInt(match[3]) : parseInt(match[3]);
+                    const añoEncontrado = parseInt(match[3]);
+                    if (match[3].length === 2) {
+                        // Año de 2 dígitos
+                        if (añoEncontrado >= 24 && añoEncontrado <= 30) {
+                            añoFinal = 2000 + añoEncontrado;
+                        }
+                        // Si es < 24 (como 03, 02), ignorarlo y usar año base
+                    } else if (match[3].length === 4) {
+                        // Año de 4 dígitos
+                        if (añoEncontrado >= 2024 && añoEncontrado <= 2030) {
+                            añoFinal = añoEncontrado;
+                        }
+                    }
                 }
                 
                 // Validar que sea una fecha válida
