@@ -567,7 +567,7 @@
   }
   .pie .hoja { padding-top: 1.1rem; padding-bottom: 1.75rem; }
   .pie p { margin: 0; max-width: 40em; }
-  /* Última línea del pie: cuándo se leyó la hoja y, a la derecha, la universidad: primero las letras y después el logo. */
+  /* Última línea del pie: el calendario en PDF y, a la derecha, la universidad: primero las letras y después el logo. */
   .pie .firma {
     display: flex;
     align-items: baseline;
@@ -582,6 +582,7 @@
     color: #fff;
     font-size: 1rem;
     font-weight: 800;
+    margin-left: auto;
     letter-spacing: .03em;
     line-height: 1;
   }
@@ -666,9 +667,9 @@
 
 <footer class="pie">
   <div class="hoja">
-    <p>Las fechas se toman de la hoja del calendario académico de la Facultad, en <a href="https://docs.google.com/spreadsheets/" id="sheetLink" target="_blank" rel="noopener">Google Sheets</a>. La página se actualiza sola cada día.</p>
+    <p>Esta página muestra las fechas del calendario académico de la Facultad y se actualiza sola cada día. Última actualización: <span id="lastUpdate">--</span>.</p>
     <div class="firma">
-      <p>Última actualización: <span id="lastUpdate">--</span></p>
+      <p id="lineaPdf" hidden>Versión en PDF: <a id="pdfLink" target="_blank" rel="noopener">Calendario académico</a>.</p>
       <div class="uni">
         <span>UNPSJB</span>
         <img src="logo_s.png" alt="Universidad Nacional de la Patagonia San Juan Bosco" width="36" height="45" onerror="this.remove()">
@@ -688,10 +689,11 @@
     // ID de tu hoja de cálculo de Google Sheets
     spreadsheetId: "1Vs1uwOuLp7zhsQvP4RKUzoDNs-74GDa-BAg1nD4ip8c",
 
-    // Hojas disponibles con su año correspondiente
+    // Hojas disponibles con su año correspondiente.
+    // pdf: el calendario en PDF de ese año (el del botón "Calendario académico" de taplink.cc/fcnycs); va en el pie.
     sheets: {
-      "2026": { sheetName: "2026", year: 2026 },
-      // "2027": { sheetName: "2027", year: 2027 },
+      "2026": { sheetName: "2026", year: 2026, pdf: "https://drive.google.com/file/d/1jFG3ht8qOyxnV850WM7kuRNpE_FCWUNR/view" },
+      // "2027": { sheetName: "2027", year: 2027, pdf: "" },
     },
 
     // Año seleccionado por defecto
@@ -887,10 +889,20 @@
     $("hoy").textContent = DIAS[d.getDay()] + " " + d.getDate() + " de " + MESES[d.getMonth()] + " de " + d.getFullYear();
   }
 
+  // El enlace del pie al calendario en PDF del ciclo elegido, si está en la configuración.
+  function renderPdf() {
+    const pdf = SHEET_CONFIG.sheets[anioActual].pdf;
+    $("lineaPdf").hidden = !pdf;
+    if (!pdf) return;
+    $("pdfLink").href = pdf;
+    $("pdfLink").textContent = "Calendario académico " + anioActual;
+  }
+
   // "Ciclo lectivo 2026". Si hay más de un año cargado, el año es un recuadro para elegir.
   function renderCiclos() {
     const anios = Object.keys(SHEET_CONFIG.sheets);
     const caja = $("ciclo");
+    renderPdf();
     if (anios.length < 2) {
       caja.innerHTML = "<strong>" + esc(anioActual) + "</strong>";
       return;
@@ -1208,7 +1220,6 @@
 
   // ---------- Arranque ----------
 
-  $("sheetLink").href = "https://docs.google.com/spreadsheets/d/" + SHEET_CONFIG.spreadsheetId + "/edit";
   document.querySelectorAll(".filtro").forEach((b) => b.addEventListener("click", () => elegirFiltro(b.dataset.filter, false)));
   diaMostrado = claveDia(new Date());
   renderHoy();
