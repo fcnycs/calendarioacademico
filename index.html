@@ -67,13 +67,25 @@
     --verde-fcncs: #1a8f5a;  /* el verde del logo de la facultad */
     --verde-velo: rgba(26, 143, 90, .88);   /* el mismo verde con un 12 % de transparencia: la portada */
     --verde-pie: rgba(22, 125, 78, .88);    /* en el pie, un punto más oscuro: así la letra chica en blanco se lee bien */
-    --amarillo: #ffe84a;     /* resaltador: en curso */
-    --agua: #86e8cf;         /* resaltador: lo próximo */
+    --amarillo: #ffe84a;     /* resaltador: lo que está en curso */
     --rojo: #b3202c;         /* la línea de hoy */
+    /* Un color por tipo de fecha, como resaltadores: la letra va en azul encima.
+       Se eligieron para que se distingan entre sí también con daltonismo. */
+    --c-examenes: #ff9f43;       /* naranja: turnos de exámenes */
+    --c-feriados: #ff8fa3;       /* rosa, el rojo del almanaque: feriados y asuetos */
+    --c-cursada: #9ee37d;        /* verde: inicio y fin de clases, recesos */
+    --c-inscripciones: #8cc8ff;  /* celeste: inscripciones para cursar, cambio de plan */
+    --c-ingresantes: #6fe3d4;    /* turquesa: ingresantes */
     --fuente: "Archivo", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
   }
 
   *, *::before, *::after { box-sizing: border-box; }
+
+  .cat-examenes { --cat: var(--c-examenes); }
+  .cat-feriados { --cat: var(--c-feriados); }
+  .cat-cursada { --cat: var(--c-cursada); }
+  .cat-inscripciones { --cat: var(--c-inscripciones); }
+  .cat-ingresantes { --cat: var(--c-ingresantes); }
 
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
@@ -240,42 +252,62 @@
   }
   .blanco:focus-within { outline: 3px solid #fff; outline-offset: 3px; }
 
-  /* La tarjeta blanca: lo que está en curso y lo que viene. */
-  .ahora {
-    margin-top: 1.75rem;
-    padding: 1.1rem 1.25rem 1.25rem;
+  /* Arriba, una ficha por cada tipo de fecha que le importa a un alumno:
+     lo que está en curso o, si no hay nada en curso, lo próximo. */
+  .ahora { margin-top: 1.75rem; }
+  .tablero {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18.5rem), 1fr));
+    gap: 1.1rem 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ficha:last-child:nth-child(odd) { grid-column: 1 / -1; }   /* si quedan en número impar, la última va a lo ancho */
+  .ficha {
+    overflow: hidden;
     border: .125rem solid var(--tinta);
     border-radius: .6rem;
     background: var(--blanco);
     box-shadow: 0 .3rem 0 var(--tinta);
     color: var(--tinta);
   }
-  .bloque + .bloque {
-    margin-top: 1.1rem;
-    padding-top: 1rem;
-    border-top: 1.5px dashed rgba(26, 36, 102, .35);
-  }
-  .rotulo {
-    margin: 0 0 .5rem;
-    font-size: .8125rem;
-    font-weight: 750;
-    letter-spacing: .09em;
-    text-transform: uppercase;
-    color: var(--tinta-suave);
-  }
-  .items { list-style: none; margin: 0; padding: 0; }
-  .item + .item { margin-top: .9rem; }
-  .item .nombre {
+  /* La franja de arriba, pintada con el color del tipo. */
+  .ficha .rotulo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
     margin: 0;
-    font-size: 1.3125rem;
-    font-size: clamp(1.1875rem, 1.02rem + .95vw, 1.625rem);
+    padding: .42rem 1.1rem .38rem;
+    border-bottom: .125rem solid var(--tinta);
+    background: var(--cat);
+    font-size: .8125rem;
+    font-weight: 800;
+    letter-spacing: .09em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+  .ficha .estado {
+    padding: .14rem .45rem .1rem;
+    border-radius: .3rem;
+    background: var(--tinta);
+    color: #fff;
+    font-size: .6875rem;
+    white-space: nowrap;
+  }
+  .ficha .cuerpo { padding: .75rem 1.1rem 1rem; }
+  .ficha .nombre {
+    margin: 0;
+    font-size: 1.25rem;
+    font-size: clamp(1.1875rem, 1.05rem + .6vw, 1.4375rem);
     font-weight: 750;
     font-stretch: 88%;
     line-height: 1.2;
     overflow-wrap: break-word;
   }
-  .item .cuando { margin: .3rem 0 0; font-size: 1.0625rem; color: var(--tinta-suave); }
-  .item .cuando .res { color: var(--tinta); font-weight: 750; }
+  .ficha .cuando { margin: .35rem 0 0; font-size: 1.0625rem; color: var(--tinta-suave); }
+  .ficha .cuando b { color: var(--tinta); font-weight: 750; }
 
   .ver-mas {
     margin: .85rem 0 0;
@@ -290,19 +322,29 @@
   }
   .ver-mas:focus-visible, .reintentar:focus-visible { outline: 3px solid var(--verde-fcncs); outline-offset: 3px; }
 
-  .ahora .espera { margin: 0; color: var(--tinta-suave); }
+  .ahora .espera, .ahora > .aviso {
+    margin: 0;
+    padding: 1.1rem 1.25rem;
+    border: .125rem solid var(--tinta);
+    border-radius: .6rem;
+    background: var(--blanco);
+    box-shadow: 0 .3rem 0 var(--tinta);
+    color: var(--tinta-suave);
+  }
+  .ahora > .aviso { color: var(--tinta); }
   .ahora .espera::after {
     content: "";
     display: block;
     height: .3rem;
     margin-top: .7rem;
     border-radius: .2rem;
-    background: linear-gradient(90deg, var(--linea) 25%, var(--agua) 50%, var(--linea) 75%) 0 0 / 300% 100%;
+    background: linear-gradient(90deg, var(--linea) 25%, var(--c-inscripciones) 50%, var(--linea) 75%) 0 0 / 300% 100%;
     animation: espera 1.4s linear infinite;
   }
   @keyframes espera { to { background-position: -150% 0; } }
 
   .aviso { margin: 0; font-weight: 600; }
+  .aviso .reintentar { display: block; }
   .reintentar {
     display: inline-block;
     margin-top: .8rem;
@@ -317,24 +359,21 @@
   }
   .reintentar:active { transform: translateY(.1rem); box-shadow: 0 .1rem 0 #0b4a2e; }
 
-  /* Resaltador, como en "Quiero Inscribirme": amarillo = en curso, agua = lo próximo. */
+  /* Resaltador amarillo, como en "Quiero Inscribirme": lo que está en curso. */
   .res {
     padding: 0 .2em;
     margin: 0 -.2em;
     -webkit-box-decoration-break: clone;
     box-decoration-break: clone;
   }
-  .ahora .res, .ev.encurso .res, .ev.pronto .res {
-    background-image: linear-gradient(var(--res), var(--res));
+  .ficha.encurso .res, .ev.encurso:not(.quieto) .res {
+    background-image: linear-gradient(var(--amarillo), var(--amarillo));
     background-repeat: no-repeat;
-    background-size: 100% var(--alto);
-    background-position: 0 var(--pos);
+    background-size: 100% 88%;
+    background-position: 0 55%;
     animation: trazo .45s cubic-bezier(.2, .7, .2, 1) backwards;
   }
-  .encurso .res { --res: var(--amarillo); --alto: 88%; --pos: 55%; }
-  .proximo .res { --res: var(--agua); --alto: 88%; --pos: 55%; }
-  .ev.pronto .res { --res: var(--agua); --alto: 52%; --pos: 80%; }
-  @keyframes trazo { from { background-size: 0% var(--alto); } }
+  @keyframes trazo { from { background-size: 0% 88%; } }
 
   /* ---------- El calendario (sobre blanco, para que los resaltadores se lean igual con cualquier fondo) ---------- */
 
@@ -373,11 +412,10 @@
     border: 1.5px solid var(--tinta);
     border-radius: 2px;
     vertical-align: -.05em;
-    background: var(--blanco);
+    background: var(--cat, var(--blanco));
   }
   .marca.pasado { background: #c9cde0; }
   .marca.encurso { background: var(--amarillo); }
-  .marca.pronto { background: linear-gradient(to top, var(--agua) 50%, transparent 50%); }
 
   /* La regla del ciclo: un tramo por mes, llena en verde hasta hoy. */
   .regla { position: relative; margin: 2.6rem 0 0; }
@@ -444,7 +482,8 @@
 
   /* ---------- Filtros ---------- */
 
-  .filtros { display: flex; flex-wrap: wrap; gap: .55rem; margin: 2rem 0 0; }
+  .filtros-titulo { margin: 2.25rem 0 0; font-size: .9375rem; color: var(--tinta-suave); }
+  .filtros { display: flex; flex-wrap: wrap; gap: .55rem; margin: .55rem 0 0; }
   .filtro {
     margin: 0;
     padding: .5em .95em .55em;
@@ -457,22 +496,13 @@
     cursor: pointer;
   }
   .filtro[aria-pressed="true"] { background: var(--tinta); color: #fff; }
+  .filtro .marca { margin-right: .45em; }
+  .filtro[aria-pressed="true"] .marca { border-color: #fff; }
   @media (hover: hover) {
     .filtro:not([aria-pressed="true"]):hover { background: #eef1ff; }
   }
   .filtro:active { transform: translateY(.12rem); box-shadow: 0 .06rem 0 var(--tinta); }
   .filtro:focus-visible { outline: 3px solid var(--verde-fcncs); outline-offset: 3px; }
-
-  .leyenda {
-    display: flex;
-    flex-wrap: wrap;
-    margin: .9rem 0 0;
-    padding: 0;
-    list-style: none;
-    font-size: .9375rem;
-    color: var(--tinta-suave);
-  }
-  .leyenda li { margin: 0 1.25rem .2rem 0; }
 
   /* ---------- La lista, mes por mes ---------- */
 
@@ -501,8 +531,19 @@
     border-bottom: 1px solid var(--linea);
   }
   .eventos > li:last-child { border-bottom: 0; }
-  /* A la izquierda, como en una hoja de almanaque: el número y el día de la semana en que empieza. */
-  .ev .dia { padding-top: .1rem; text-align: center; line-height: 1; }
+  /* A la izquierda, como en una hoja de almanaque: el número y el día de la semana en que empieza,
+     pintados con el color del tipo de fecha. */
+  .ev .dia {
+    align-self: start;
+    padding: .3rem 0 .32rem;
+    border: 2px solid transparent;
+    border-radius: .45rem;
+    text-align: center;
+    line-height: 1;
+  }
+  .ev.color .dia { border-color: var(--tinta); background: var(--cat); box-shadow: 0 .15rem 0 var(--tinta); }
+  .ev.color .sem { color: var(--tinta); }
+  .ev.pasado .dia { opacity: .5; }
   .ev .num {
     display: block;
     font-size: 2rem;
@@ -531,6 +572,26 @@
   .ev .cuando { margin: .2rem 0 0; font-size: .9375rem; color: var(--tinta-suave); }
   .ev .rel { font-weight: 700; color: var(--tinta); }
   .ev.pasado .num, .ev.pasado .nombre, .ev.pasado .rel { font-weight: 500; color: var(--tinta-suave); }
+
+  /* Lo de docentes y posgrado va más chico y sin color, para que resalte lo que le importa a un alumno. */
+  .ev.quieto { padding: .55rem 0; }
+  .ev.quieto .num { font-size: 1.375rem; font-weight: 700; color: var(--tinta-suave); }
+  .ev.quieto .nombre { font-size: .9375rem; font-weight: 500; font-stretch: 100%; color: var(--tinta-suave); }
+  .ev.quieto .cuando { font-size: .875rem; }
+  .ev.quieto .rel { font-weight: 600; color: var(--tinta-suave); }
+  .etiqueta {
+    display: inline-block;
+    margin-right: .5em;
+    padding: 0 .4em;
+    border: 1px solid var(--tinta-suave);
+    border-radius: .25rem;
+    font-size: .6875rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    line-height: 1.5;
+    text-transform: uppercase;
+    vertical-align: .08em;
+  }
 
   /* La línea de hoy, entre lo que ya empezó y lo que viene. */
   .hoy-linea {
@@ -591,17 +652,18 @@
   .pie a:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 
   @media (max-width: 30rem) {
-    .ahora { padding: 1rem 1rem 1.1rem; }
     .filtro { padding: .45em .75em .5em; font-size: .9375rem; }
     .ev { grid-template-columns: 2.6rem minmax(0, 1fr); gap: 0 .75rem; }
     .ev .num { font-size: 1.75rem; }
+    .ev.quieto .num { font-size: 1.25rem; }
+    .ficha .rotulo, .ficha .cuerpo { padding-left: 1rem; padding-right: 1rem; }
     .pie .firma { gap: .75rem; }
     .uni { font-size: .875rem; }
     .uni img { width: 1.5rem; margin-left: .4rem; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .ahora .res, .ev.encurso .res, .ev.pronto .res { animation: none; }
+    .ficha.encurso .res, .ev.encurso:not(.quieto) .res { animation: none; }
     .ahora .espera::after { animation: none; }
     .lleno { transition: none; }
     .filtro:active, .reintentar:active { transform: none; }
@@ -626,7 +688,7 @@
       <p class="frase">Ciclo lectivo <span id="ciclo"><strong>2026</strong></span></p>
       <p class="frase">Hoy es <strong id="hoy">…</strong>.</p>
 
-      <section class="ahora" id="ahora" aria-label="En curso y próximo" aria-live="polite">
+      <section class="ahora" id="ahora" aria-label="En curso y lo próximo de cada tipo de fecha" aria-live="polite">
         <p class="espera">Cargando el calendario…</p>
       </section>
       <noscript><p class="frase">Esta página necesita JavaScript para mostrar el calendario.</p></noscript>
@@ -646,16 +708,16 @@
         <div class="meses-regla" id="mesesRegla" aria-hidden="true"></div>
       </div>
 
-      <div class="filtros" id="filtros" role="group" aria-label="Mostrar">
-        <button type="button" class="filtro" data-filter="all" aria-pressed="true">Todos</button>
-        <button type="button" class="filtro" data-filter="past" aria-pressed="false">Pasados</button>
-        <button type="button" class="filtro" data-filter="current" aria-pressed="false">En curso / Próximo</button>
-        <button type="button" class="filtro" data-filter="future" aria-pressed="false">Pendientes</button>
+      <p class="filtros-titulo" id="filtros-titulo">Cada tipo de fecha tiene su color. Tocá uno para ver solo esas fechas:</p>
+      <div class="filtros" id="filtros" role="group" aria-labelledby="filtros-titulo">
+        <button type="button" class="filtro" data-filter="todo" aria-pressed="true">Todo</button>
+        <button type="button" class="filtro cat-examenes" data-filter="examenes" aria-pressed="false"><span class="marca"></span>Exámenes</button>
+        <button type="button" class="filtro cat-feriados" data-filter="feriados" aria-pressed="false"><span class="marca"></span>Feriados</button>
+        <button type="button" class="filtro cat-cursada" data-filter="cursada" aria-pressed="false"><span class="marca"></span>Clases y recesos</button>
+        <button type="button" class="filtro cat-inscripciones" data-filter="inscripciones" aria-pressed="false"><span class="marca"></span>Inscripciones</button>
+        <button type="button" class="filtro cat-ingresantes" data-filter="ingresantes" aria-pressed="false"><span class="marca"></span>Ingresantes</button>
+        <button type="button" class="filtro" data-filter="docentes" aria-pressed="false">Docentes y posgrado</button>
       </div>
-      <ul class="leyenda">
-        <li><span class="marca encurso"></span>en curso</li>
-        <li><span class="marca pronto"></span>en los próximos 7 días</li>
-      </ul>
       <p class="sr" id="resumen" role="status"></p>
 
       <div id="timelineContainer">
@@ -707,13 +769,50 @@
   const INICIALES = ["E", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
   const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
   const DIAS_CORTOS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
-  const MAX_TARJETA = 3;   // cuántos eventos entran en la tarjeta de arriba antes del "ver todos"
+
+  // Los tipos de fecha. Los que le importan a un alumno tienen color (en el CSS, --c-…) y una ficha arriba;
+  // los de docentes y posgrado van más chicos y sin color; los que no se reconocen, sin color pero de tamaño normal.
+  const TIPO = {
+    examenes:      { nombre: "Exámenes", color: true },
+    feriados:      { nombre: "Feriados", color: true },
+    cursada:       { nombre: "Clases y recesos", color: true },
+    inscripciones: { nombre: "Inscripciones", color: true },
+    ingresantes:   { nombre: "Ingresantes", color: true },
+    docentes:      { nombre: "Docentes", quieto: true },
+    posgrado:      { nombre: "Posgrado y extensión", quieto: true },
+    otras:         { nombre: "Otras fechas" }
+  };
+  const TABLERO = ["examenes", "feriados", "cursada", "inscripciones", "ingresantes"];   // las fichas de arriba, en este orden
+
+  // El tipo de cada fecha, según lo que dice el texto. El orden importa: "DOCENTES-Programas de asignaturas del
+  // 1° cuatrimestre" es de docentes aunque diga cuatrimestre, y "Asueto académico. Día del Docente" es un asueto.
+  // Si la hoja tiene una tercera columna con el tipo escrito ("Feriado", "Exámenes", "Docentes"…), manda esa.
+  const RECONOCER = [
+    ["docentes", /^docentes?\b|cargos? interinos?|informe anual docente/],
+    ["posgrado", /posgrado|extension\b/],
+    ["feriados", /feriado|asueto|carnaval/],
+    ["examenes", /examen/],
+    ["ingresantes", /ingresante|ingresar|nivelacion|preinscripcion/],
+    ["inscripciones", /inscripci|cambio de plan|reincorporaci|equivalencia/],
+    ["cursada", /receso|cuatrimestre|clases|dictado|cursada|semana del estudiante/],
+    ["otras", /^otras?$/]
+  ];
+  const sinTildes = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  function tipoDe(texto, tipoEscrito) {
+    if (tipoEscrito) {
+      const elegido = RECONOCER.find(([, re]) => re.test(sinTildes(tipoEscrito)));
+      if (elegido) return elegido[0];
+    }
+    const s = sinTildes(texto);
+    const tipo = RECONOCER.find(([id, re]) => id !== "otras" && re.test(s));
+    return tipo ? tipo[0] : "otras";
+  }
 
   const $ = (id) => document.getElementById(id);
 
   let anioActual = SHEET_CONFIG.sheets[SHEET_CONFIG.defaultYear] ? SHEET_CONFIG.defaultYear : Object.keys(SHEET_CONFIG.sheets)[0];
-  let eventos = [];          // { inicio, fin, dias, tipo, texto, orden }, ordenados por fecha
-  let filtro = "all";
+  let eventos = [];          // { inicio, fin, dias, tipo, cat, texto, orden }, ordenados por fecha
+  let filtro = "todo";       // "todo", un tipo ("examenes"…) o "docentes" (docentes y posgrado)
   let ultimaLectura = null;
   let diaMostrado = "";      // el día con el que está dibujada la página ("2026-10-13")
   let primeraVez = true;     // solo al abrir la página se baja hasta la línea de hoy
@@ -813,23 +912,6 @@
   // El próximo día en que pasa algo de este evento (para los que todavía no empezaron).
   const proximoDia = (ev, hoy) => ev.dias.find((d) => diasEntre(hoy, d) >= 0) || ev.inicio;
 
-  // El primer día con algo pendiente: lo que muestra "Lo próximo" y el filtro "En curso / Próximo".
-  function proximaFecha(hoy) {
-    let mejor = null;
-    for (const ev of eventos) {
-      if (estado(ev, hoy) !== "futuro") continue;
-      const d = proximoDia(ev, hoy);
-      if (mejor === null || d < mejor) mejor = d;
-    }
-    return mejor;
-  }
-
-  // "pasado", "encurso", "pronto" (empieza en los próximos 7 días) o "futuro".
-  function clase(ev, hoy) {
-    const e = estado(ev, hoy);
-    return e === "futuro" && diasEntre(hoy, proximoDia(ev, hoy)) <= 7 ? "pronto" : e;
-  }
-
   // Cuándo es, dicho como lo diría cualquiera: sin horas ni cuentas de días.
   // (El número y la palabra que lo sigue van pegados con un espacio que no se corta: "lunes 26", "3 semanas".)
   //   hacia adelante: "mañana", "el próximo lunes", "la semana que viene", "el lunes 26", "en 3 semanas", "en 2 meses"
@@ -921,36 +1003,50 @@
     });
   }
 
-  // La tarjeta de arriba: lo que está en curso y lo próximo.
+  // Arriba, una ficha por tipo: lo que está en curso (primero lo que termina antes) o, si no hay nada en curso, lo próximo.
   function renderAhora(hoy) {
+    const fichas = [];
+    for (const cat of TABLERO) {
+      const delTipo = eventos.filter((ev) => ev.cat === cat);
+      const enCurso = delTipo.filter((ev) => estado(ev, hoy) === "encurso").sort((a, b) => a.fin - b.fin || a.orden - b.orden);
+      if (enCurso.length) {
+        fichas.push(ficha(cat, enCurso[0], hoy, true, enCurso.length - 1));
+        continue;
+      }
+      const futuros = delTipo.filter((ev) => estado(ev, hoy) === "futuro")
+        .sort((a, b) => proximoDia(a, hoy) - proximoDia(b, hoy) || a.orden - b.orden);
+      if (!futuros.length) continue;
+      const d = proximoDia(futuros[0], hoy);
+      const juntos = futuros.filter((ev) => diasEntre(proximoDia(ev, hoy), d) === 0).length;
+      fichas.push(ficha(cat, futuros[0], hoy, false, juntos - 1));
+    }
     const caja = $("ahora");
-    const enCurso = eventos.filter((ev) => estado(ev, hoy) === "encurso");
-    const prox = proximaFecha(hoy);
-    const proximos = prox ? eventos.filter((ev) => estado(ev, hoy) === "futuro" && diasEntre(proximoDia(ev, hoy), prox) === 0) : [];
-    let html = "";
-    if (enCurso.length) html += bloque("En curso", "encurso", enCurso, hoy);
-    if (proximos.length) html += bloque(enCurso.length ? "Lo que sigue" : "Lo próximo", "proximo", proximos, hoy);
-    if (!html) html = '<p class="aviso">No quedan fechas por delante en el ciclo ' + esc(anioActual) + ".</p>";
-    caja.innerHTML = html;
-    caja.querySelectorAll(".ver-mas").forEach((b) => b.addEventListener("click", () => elegirFiltro("current", true)));
+    caja.innerHTML = fichas.length
+      ? '<ul class="tablero">' + fichas.join("") + "</ul>"
+      : '<p class="aviso">No quedan fechas por delante en el ciclo ' + esc(anioActual) + ".</p>";
+    caja.querySelectorAll(".ver-mas").forEach((b) => b.addEventListener("click", () => elegirFiltro(b.dataset.cat, true)));
   }
 
-  function bloque(titulo, tipo, lista, hoy) {
-    let h = '<div class="bloque ' + tipo + '"><h2 class="rotulo">' + titulo + '</h2><ul class="items">';
-    for (const ev of lista.slice(0, MAX_TARJETA)) {
-      const frase = cuandoEs(ev, hoy);
-      const conAnio = ev.inicio.getFullYear() !== hoy.getFullYear() || ev.fin.getFullYear() !== hoy.getFullYear();
-      // Si la frase ya dice el día de la semana ("el próximo lunes"), la fecha va sin él.
-      const conSemana = !DIAS.some((d) => frase.includes(d));
-      h += '<li class="item"><p class="nombre">' + esc(ev.texto) + "</p>" +
-        '<p class="cuando"><span class="res">' + esc(mayus(frase)) + "</span> · " + esc(textoFecha(ev, conSemana, conAnio)) + "</p></li>";
+  function ficha(cat, ev, hoy, enCurso, mas) {
+    const frase = cuandoEs(ev, hoy);
+    const conAnio = ev.inicio.getFullYear() !== hoy.getFullYear() || ev.fin.getFullYear() !== hoy.getFullYear();
+    const conSemana = !DIAS.some((d) => frase.includes(d));   // si la frase ya dice "el próximo lunes", la fecha va sin el día
+    // "El martes 3 de noviembre" en lugar de "El martes 3 · 3 de noviembre".
+    const cuando = ev.tipo !== "periodo" && /^el \S+ \d+$/.test(frase)
+      ? '<b class="res">El ' + esc(textoFecha(ev, true, conAnio)) + "</b>"
+      : '<b class="res">' + esc(mayus(frase)) + "</b> · " + esc(textoFecha(ev, conSemana, conAnio));
+    let h = '<li class="ficha cat-' + cat + (enCurso ? " encurso" : "") + '">' +
+      '<h2 class="rotulo"><span>' + TIPO[cat].nombre + "</span>" +
+      (enCurso && ev.tipo === "periodo" ? '<span class="estado">En curso</span>' : "") + "</h2>" +
+      '<div class="cuerpo"><p class="nombre">' + esc(ev.texto) + "</p>" +
+      '<p class="cuando">' + cuando + "</p>";
+    if (mas > 0) {
+      const texto = enCurso
+        ? (mas === 1 ? "Hay 1 más en curso" : "Hay " + mas + " más en curso")
+        : (mas === 1 ? "Y 1 más ese día" : "Y " + mas + " más ese día");
+      h += '<button type="button" class="ver-mas" data-cat="' + cat + '">' + texto + "</button>";
     }
-    h += "</ul>";
-    if (lista.length > MAX_TARJETA) {
-      h += '<button type="button" class="ver-mas">Ver los ' + lista.length + " " +
-        (tipo === "encurso" ? "que están en curso" : "que empiezan ese día") + "</button>";
-    }
-    return h + "</div>";
+    return h + "</div></li>";
   }
 
   // Los contadores y la regla del ciclo, de un mes al otro, llena hasta hoy.
@@ -1007,17 +1103,7 @@
     requestAnimationFrame(() => requestAnimationFrame(() => { $("lleno").style.width = pct + "%"; }));
   }
 
-  function pasaFiltro(ev, hoy, prox) {
-    const e = estado(ev, hoy);
-    if (filtro === "past") return e === "pasado";
-    if (filtro === "future") return e === "futuro";
-    if (filtro === "current") {
-      if (e !== "futuro") return e === "encurso";
-      const d = proximoDia(ev, hoy);
-      return diasEntre(hoy, d) <= 7 || (prox !== null && diasEntre(d, prox) === 0);
-    }
-    return true;
-  }
+  const pasaFiltro = (ev) => filtro === "todo" || ev.cat === filtro || (filtro === "docentes" && TIPO[ev.cat].quieto);
 
   // La lista, mes por mes. La línea de hoy va antes del primer evento que empieza hoy o después.
   function renderLista(hoy, bajarHastaHoy) {
@@ -1027,8 +1113,7 @@
       $("resumen").textContent = "";
       return;
     }
-    const prox = proximaFecha(hoy);
-    const visibles = eventos.filter((ev) => pasaFiltro(ev, hoy, prox));
+    const visibles = eventos.filter(pasaFiltro);
     $("resumen").textContent = visibles.length === 1 ? "Se muestra 1 evento." : "Se muestran " + visibles.length + " eventos.";
     if (!visibles.length) {
       caja.innerHTML = '<p class="nada">No hay eventos con este filtro.</p>';
@@ -1082,14 +1167,18 @@
 
   function itemLista(ev, hoy) {
     const i = ev.inicio;
+    const t = TIPO[ev.cat];
+    const clases = "ev " + estado(ev, hoy) + (t.color ? " color cat-" + ev.cat : "") + (t.quieto ? " quieto" : "");
     // En los de un solo día, el número y el día de la semana ya están a la izquierda: la línea dice solo cuándo es.
     const fecha = ev.tipo === "dia"
       ? '<span class="sr">' + esc(mayus(textoFecha(ev, true))) + ". </span>"
       : esc(mayus(textoFecha(ev, false))) + " · ";
-    return '<li class="ev ' + clase(ev, hoy) + '">' +
+    // El tipo: a la vista en los de docentes y posgrado; en los demás lo dice el color (y se lee en voz alta).
+    const tipo = t.quieto ? '<span class="etiqueta">' + t.nombre + "</span>" : '<span class="sr">' + t.nombre + ". </span>";
+    return '<li class="' + clases + '">' +
       '<div class="dia" aria-hidden="true"><span class="num">' + i.getDate() + '</span><span class="sem">' + DIAS_CORTOS[i.getDay()] + "</span></div>" +
       '<div><p class="nombre"><span class="res">' + esc(ev.texto) + "</span></p>" +
-      '<p class="cuando">' + fecha + '<span class="rel">' + esc(cuandoEs(ev, hoy)) + "</span></p></div></li>";
+      '<p class="cuando">' + tipo + fecha + '<span class="rel">' + esc(cuandoEs(ev, hoy)) + "</span></p></div></li>";
   }
 
   function renderTodo(bajarHastaHoy) {
@@ -1175,6 +1264,7 @@
         continue;
       }
       fecha.texto = texto;
+      fecha.cat = tipoDe(texto, tabla.getNumberOfColumns() > 2 ? tabla.getValue(r, 2) : null);
       fecha.orden = r;
       nuevos.push(fecha);
     }
