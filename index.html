@@ -76,6 +76,8 @@
     --c-cursada: #9ee37d;        /* verde: inicio y fin de clases, recesos */
     --c-inscripciones: #8cc8ff;  /* celeste: inscripciones para cursar, cambio de plan */
     --c-ingresantes: #6fe3d4;    /* turquesa: ingresantes */
+    --c-docentes: #b8a0ff;       /* lila: docentes (programas, informes, cargos interinos) */
+    --c-posgrado: #e6c99a;       /* arena: posgrado y extensión */
     --fuente: "Archivo", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
   }
 
@@ -86,6 +88,8 @@
   .cat-cursada { --cat: var(--c-cursada); }
   .cat-inscripciones { --cat: var(--c-inscripciones); }
   .cat-ingresantes { --cat: var(--c-ingresantes); }
+  .cat-docentes { --cat: var(--c-docentes); }
+  .cat-posgrado { --cat: var(--c-posgrado); }
 
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
@@ -612,9 +616,11 @@
   .ev .rel { font-weight: 700; color: var(--tinta); }
   .ev.pasado .num, .ev.pasado .nombre, .ev.pasado .rel { font-weight: 500; color: var(--tinta-suave); }
 
-  /* Lo de docentes y posgrado va más chico y sin color, para que resalte lo que le importa a un alumno. */
+  /* Lo de docentes y posgrado lleva su color, pero va más chico y sin relieve, para que resalte lo que le importa a un alumno. */
   .ev.quieto { padding: .55rem 0; }
   .ev.quieto .num { font-size: 1.375rem; font-weight: 700; color: var(--tinta-suave); }
+  .ev.quieto.color .dia { border-width: 1.5px; box-shadow: none; }
+  .ev.quieto.color .num { color: var(--tinta); }
   .ev.quieto .nombre { font-size: .9375rem; font-weight: 500; font-stretch: 100%; color: var(--tinta-suave); }
   .ev.quieto .cuando { font-size: .875rem; }
   .ev.quieto .rel { font-weight: 600; color: var(--tinta-suave); }
@@ -759,7 +765,8 @@
         <button type="button" class="filtro cat-cursada" data-filter="cursada" aria-pressed="false"><span class="marca"></span>Clases y recesos</button>
         <button type="button" class="filtro cat-inscripciones" data-filter="inscripciones" aria-pressed="false"><span class="marca"></span>Inscripciones</button>
         <button type="button" class="filtro cat-ingresantes" data-filter="ingresantes" aria-pressed="false"><span class="marca"></span>Ingresantes</button>
-        <button type="button" class="filtro" data-filter="docentes" aria-pressed="false">Docentes y posgrado</button>
+        <button type="button" class="filtro cat-docentes" data-filter="docentes" aria-pressed="false"><span class="marca"></span>Docentes</button>
+        <button type="button" class="filtro cat-posgrado" data-filter="posgrado" aria-pressed="false"><span class="marca"></span>Posgrado y extensión</button>
       </div>
       <p class="sr" id="resumen" role="status"></p>
 
@@ -822,16 +829,17 @@
   const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
   const DIAS_CORTOS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 
-  // Los tipos de fecha. Los que le importan a un alumno tienen color (en el CSS, --c-…) y una ficha arriba;
-  // los de docentes y posgrado van más chicos y sin color; los que no se reconocen, sin color pero de tamaño normal.
+  // Los tipos de fecha. Cada uno tiene su color (en el CSS, --c-…) y su filtro. Los que le importan a un alumno
+  // además tienen una ficha arriba; los de docentes y posgrado van más chicos ("quieto"), para que resalte lo de
+  // los alumnos. Los que no se reconocen van sin color y de tamaño normal.
   const TIPO = {
     examenes:      { nombre: "Exámenes", color: true },
     feriados:      { nombre: "Feriados", color: true },
     cursada:       { nombre: "Clases y recesos", color: true },
     inscripciones: { nombre: "Inscripciones", color: true },
     ingresantes:   { nombre: "Ingresantes", color: true },
-    docentes:      { nombre: "Docentes", quieto: true },
-    posgrado:      { nombre: "Posgrado y extensión", quieto: true },
+    docentes:      { nombre: "Docentes", color: true, quieto: true },
+    posgrado:      { nombre: "Posgrado y extensión", color: true, quieto: true },
     otras:         { nombre: "Otras fechas" }
   };
   const TABLERO = ["examenes", "feriados", "cursada", "inscripciones", "ingresantes"];   // las fichas de arriba, en este orden
@@ -1155,7 +1163,7 @@
     requestAnimationFrame(() => requestAnimationFrame(() => { $("lleno").style.width = pct + "%"; }));
   }
 
-  const pasaFiltro = (ev) => filtro === "todo" || ev.cat === filtro || (filtro === "docentes" && TIPO[ev.cat].quieto);
+  const pasaFiltro = (ev) => filtro === "todo" || ev.cat === filtro;
 
   // La lista, mes por mes. La línea de hoy va antes del primer evento que empieza hoy o después.
   function renderLista(hoy, bajarHastaHoy) {
