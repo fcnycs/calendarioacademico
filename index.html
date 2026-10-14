@@ -344,7 +344,7 @@
   @keyframes espera { to { background-position: -150% 0; } }
 
   /* "Ir a hoy": baja hasta la línea de hoy, en el calendario. Verde, como "Consultar" en "Quiero Inscribirme". */
-  .ir-hoy-caja { margin: 1.6rem 0 0; }
+  .ir-hoy-caja { margin: 1.1rem 0 0; }
   .ir-hoy {
     display: inline-flex;
     align-items: center;
@@ -716,11 +716,11 @@
       <h1>Calendario Académico</h1>
       <p class="frase">Ciclo lectivo <span id="ciclo"><strong>2026</strong></span></p>
       <p class="frase">Hoy es <strong id="hoy">…</strong>.</p>
+      <p class="ir-hoy-caja"><button type="button" class="ir-hoy" id="irHoy" hidden>Ir a hoy<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v14.5M5.5 12.5 12 19l6.5-6.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></p>
 
       <section class="ahora" id="ahora" aria-label="En curso y lo próximo de cada tipo de fecha" aria-live="polite">
         <p class="espera">Cargando el calendario…</p>
       </section>
-      <p class="ir-hoy-caja"><button type="button" class="ir-hoy" id="irHoy" hidden>Ir a hoy<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v14.5M5.5 12.5 12 19l6.5-6.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></p>
       <noscript><p class="frase">Esta página necesita JavaScript para mostrar el calendario.</p></noscript>
     </div>
   </div>
@@ -761,7 +761,7 @@
   <div class="hoja">
     <p>Esta página muestra las fechas del calendario académico de la Facultad y se actualiza sola cada día. Última actualización: <span id="lastUpdate">--</span>.</p>
     <div class="firma">
-      <p id="lineaPdf" hidden>Versión en PDF: <a id="pdfLink" target="_blank" rel="noopener">Calendario académico</a>.</p>
+      <p id="lineaPdf" hidden>Calendario oficial: <a id="pdfLink" target="_blank" rel="noopener">Resolución del calendario académico</a> (PDF). Ante cualquier diferencia, vale la resolución.</p>
       <div class="uni">
         <span>UNPSJB</span>
         <img src="logo_s.png" alt="Universidad Nacional de la Patagonia San Juan Bosco" width="36" height="45" onerror="this.remove()">
@@ -782,14 +782,23 @@
     spreadsheetId: "1Vs1uwOuLp7zhsQvP4RKUzoDNs-74GDa-BAg1nD4ip8c",
 
     // Hojas disponibles con su año correspondiente.
-    // pdf: el calendario en PDF de ese año (el del botón "Calendario académico" de taplink.cc/fcnycs); va en el pie.
+    // resolucion y pdf: la resolución que fija el calendario de ese año y su PDF (el del botón "Calendario académico"
+    // de taplink.cc/fcnycs). Van en el pie. La página lee la hoja, no el PDF: si sale una rectificación, hay que
+    // corregir también la hoja.
     sheets: {
-      "2026": { sheetName: "2026", year: 2026, pdf: "https://drive.google.com/file/d/1jFG3ht8qOyxnV850WM7kuRNpE_FCWUNR/view" },
-      // "2027": { sheetName: "2027", year: 2027, pdf: "" },
+      "2026": {
+        sheetName: "2026", year: 2026,
+        resolucion: "Resolución DFCNyCS Nº 50/2026",
+        pdf: "https://drive.google.com/file/d/1jFG3ht8qOyxnV850WM7kuRNpE_FCWUNR/view"
+      },
+      // "2027": { sheetName: "2027", year: 2027, resolucion: "Resolución … Nº …/…", pdf: "" },
     },
 
     // Año seleccionado por defecto
-    defaultYear: "2026"
+    defaultYear: "2026",
+
+    // Al abrir la página, ¿baja sola hasta la línea de hoy? (true: sí; false: queda arriba y se usa "Ir a hoy").
+    bajarAlAbrir: false
   };
   // =====================================================
 
@@ -820,7 +829,7 @@
   const RECONOCER = [
     ["docentes", /^docentes?\b|cargos? interinos?|informe anual docente/],
     ["posgrado", /posgrado|extension\b/],
-    ["feriados", /feriado|asueto|carnaval/],
+    ["feriados", /feriado|asueto|carnaval|no labora/],   // también "Día no laboral con fines turísticos"
     ["examenes", /examen/],
     ["ingresantes", /ingresante|ingresar|nivelacion|preinscripcion/],
     ["inscripciones", /inscripci|cambio de plan|reincorporaci|equivalencia/],
@@ -1001,13 +1010,13 @@
     $("hoy").textContent = DIAS[d.getDay()] + " " + d.getDate() + " de " + MESES[d.getMonth()] + " de " + d.getFullYear();
   }
 
-  // El enlace del pie al calendario en PDF del ciclo elegido, si está en la configuración.
+  // El enlace del pie a la resolución del calendario (PDF) del ciclo elegido, si está en la configuración.
   function renderPdf() {
-    const pdf = SHEET_CONFIG.sheets[anioActual].pdf;
-    $("lineaPdf").hidden = !pdf;
-    if (!pdf) return;
-    $("pdfLink").href = pdf;
-    $("pdfLink").textContent = "Calendario académico " + anioActual;
+    const hoja = SHEET_CONFIG.sheets[anioActual];
+    $("lineaPdf").hidden = !hoja.pdf;
+    if (!hoja.pdf) return;
+    $("pdfLink").href = hoja.pdf;
+    $("pdfLink").textContent = hoja.resolucion || "Resolución del calendario académico " + anioActual;
   }
 
   // "Ciclo lectivo 2026". Si hay más de un año cargado, el año es un recuadro para elegir.
@@ -1345,7 +1354,7 @@
     nuevos.sort((a, b) => a.inicio - b.inicio || a.orden - b.orden);
     eventos = nuevos;
     ultimaLectura = new Date();
-    renderTodo(primeraVez && !opc.silencioso);
+    renderTodo(primeraVez && !opc.silencioso && SHEET_CONFIG.bajarAlAbrir);
     primeraVez = false;
   }
 
