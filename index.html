@@ -343,6 +343,32 @@
   }
   @keyframes espera { to { background-position: -150% 0; } }
 
+  /* "Ir a hoy": baja hasta la línea de hoy, en el calendario. Verde, como "Consultar" en "Quiero Inscribirme". */
+  .ir-hoy-caja { margin: 1.6rem 0 0; }
+  .ir-hoy {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .55rem;
+    min-height: 3.2rem;
+    margin: 0;
+    padding: .75em 1.7em;
+    border: 0;
+    border-radius: .55rem;
+    background: var(--verde-fcncs);
+    box-shadow: 0 .22rem 0 #0b4a2e;
+    color: #fff;
+    font: 700 1.1875rem/1 var(--fuente);
+    cursor: pointer;
+  }
+  .ir-hoy svg { width: 1.1em; height: 1.1em; flex: none; }
+  @media (hover: hover) {
+    .ir-hoy:hover { background: #167a4d; }
+  }
+  .ir-hoy:active { transform: translateY(.12rem); box-shadow: 0 .1rem 0 #0b4a2e; }
+  .ir-hoy:focus-visible { outline: 3px solid #fff; outline-offset: 4px; }
+  .ir-hoy[hidden] { display: none; }
+
   .aviso { margin: 0; font-weight: 600; }
   .aviso .reintentar { display: block; }
   .reintentar {
@@ -610,6 +636,8 @@
   .hoy-linea::before { content: ""; flex: none; width: .6rem; height: .6rem; border-radius: 50%; background: var(--rojo); }
   .hoy-linea::after { content: ""; flex: 1; border-top: 2px solid var(--rojo); }
   .eventos > .hoy-linea { border-bottom: 0; }
+  .hoy-linea:focus { outline: none; }   /* recibe el foco al tocar "Ir a hoy", para seguir con el teclado desde ahí */
+  .hoy-linea:focus-visible { outline: 2px dashed var(--rojo); outline-offset: 4px; }
   div.hoy-linea { margin-top: 1.75rem; }
 
   .nada, .falla { margin: 2rem 0 0; font-size: 1.125rem; }
@@ -653,6 +681,7 @@
 
   @media (max-width: 30rem) {
     .filtro { padding: .45em .75em .5em; font-size: .9375rem; }
+    .ir-hoy { width: 100%; }
     .ev { grid-template-columns: 2.6rem minmax(0, 1fr); gap: 0 .75rem; }
     .ev .num { font-size: 1.75rem; }
     .ev.quieto .num { font-size: 1.25rem; }
@@ -666,7 +695,7 @@
     .ficha.encurso .res, .ev.encurso:not(.quieto) .res { animation: none; }
     .ahora .espera::after { animation: none; }
     .lleno { transition: none; }
-    .filtro:active, .reintentar:active { transform: none; }
+    .filtro:active, .reintentar:active, .ir-hoy:active { transform: none; }
   }
 </style>
 </head>
@@ -691,6 +720,7 @@
       <section class="ahora" id="ahora" aria-label="En curso y lo próximo de cada tipo de fecha" aria-live="polite">
         <p class="espera">Cargando el calendario…</p>
       </section>
+      <p class="ir-hoy-caja"><button type="button" class="ir-hoy" id="irHoy" hidden>Ir a hoy<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v14.5M5.5 12.5 12 19l6.5-6.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></p>
       <noscript><p class="frase">Esta página necesita JavaScript para mostrar el calendario.</p></noscript>
     </div>
   </div>
@@ -1120,7 +1150,7 @@
       return;
     }
 
-    const lineaHoy = (etiqueta) => "<" + etiqueta + ' class="hoy-linea" id="lineaHoy">Hoy, ' +
+    const lineaHoy = (etiqueta) => "<" + etiqueta + ' class="hoy-linea" id="lineaHoy" tabindex="-1">Hoy, ' +
       DIAS[hoy.getDay()] + " " + hoy.getDate() + " de " + MESES[hoy.getMonth()] + "</" + etiqueta + ">";
     const kHoy = claveMes(hoy);
     let html = "";
@@ -1158,11 +1188,57 @@
     cerrarMes();
     caja.innerHTML = html;
 
-    if (bajarHastaHoy) {
-      const linea = $("lineaHoy");
-      const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (linea) setTimeout(() => linea.scrollIntoView({ behavior: quieto ? "auto" : "smooth", block: "center" }), 600);
+    if (bajarHastaHoy) setTimeout(() => irAHoy(false), 600);
+  }
+
+  // ---------- Bajar hasta hoy, con un movimiento suave ----------
+
+  // Va hasta un elemento arrancando despacio, toma velocidad y frena al llegar (el del navegador arranca de golpe).
+  // Tarda según la distancia, entre 0,6 y 1,4 segundos. Si la persona mueve la rueda del mouse, toca la pantalla
+  // o aprieta una tecla, se corta ahí. donde: "centro" (lo deja en el medio de la pantalla) o "arriba".
+  let pararMovimiento = null;
+  function irSuave(el, donde, alTerminar) {
+    if (pararMovimiento) pararMovimiento();
+    const destino = () => {   // se calcula en cada paso, por si algo se acomoda mientras baja
+      const r = el.getBoundingClientRect();
+      const y = window.scrollY + r.top - (donde === "centro" ? (window.innerHeight - r.height) / 2 : 12);
+      return Math.max(0, Math.min(y, document.documentElement.scrollHeight - window.innerHeight));
+    };
+    const desde = window.scrollY;
+    const distancia = Math.abs(destino() - desde);
+    if (distancia < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      window.scrollTo(0, destino());
+      if (alTerminar) alTerminar();
+      return;
     }
+    const duracion = Math.min(1400, Math.max(600, 400 + distancia * 0.12));
+    const curva = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);   // despacio, rápido, despacio
+    const cortes = ["wheel", "touchstart", "keydown", "mousedown"];
+    let cuadro = 0;
+    const parar = () => {
+      cancelAnimationFrame(cuadro);
+      cortes.forEach((e) => window.removeEventListener(e, parar));
+      pararMovimiento = null;
+    };
+    cortes.forEach((e) => window.addEventListener(e, parar, { passive: true }));
+    pararMovimiento = parar;
+    const inicio = performance.now();
+    const paso = (ahora) => {
+      const t = Math.min(1, (ahora - inicio) / duracion);
+      window.scrollTo(0, desde + (destino() - desde) * curva(t));
+      if (t < 1) cuadro = requestAnimationFrame(paso);
+      else { parar(); if (alTerminar) alTerminar(); }
+    };
+    cuadro = requestAnimationFrame(paso);
+  }
+
+  // Hasta la línea de hoy (o, si el filtro no deja ningún evento, hasta la lista).
+  // Con el botón "Ir a hoy", además, el foco queda en esa línea, para seguir con el teclado desde ahí.
+  function irAHoy(conFoco) {
+    const linea = $("lineaHoy");
+    irSuave(linea || $("timelineContainer"), linea ? "centro" : "arriba", () => {
+      if (conFoco && linea) linea.focus({ preventScroll: true });
+    });
   }
 
   function itemLista(ev, hoy) {
@@ -1186,6 +1262,7 @@
     renderAhora(hoy);
     renderProgreso(hoy);
     renderLista(hoy, bajarHastaHoy);
+    $("irHoy").hidden = !eventos.length;
     if (ultimaLectura) {
       $("lastUpdate").textContent = ultimaLectura.toLocaleString("es-AR", {
         day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false
@@ -1198,10 +1275,7 @@
     document.querySelectorAll(".filtro").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.filter === f)));
     renderLista(hoyDia(), false);
     const barra = $("filtros");
-    if (irALista || barra.getBoundingClientRect().top < 0) {
-      const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      barra.scrollIntoView({ behavior: quieto ? "auto" : "smooth", block: "start" });
-    }
+    if (irALista || barra.getBoundingClientRect().top < 0) irSuave(barra, "arriba");
   }
 
   // ---------- Datos: la hoja de Google Sheets ----------
@@ -1311,6 +1385,7 @@
   // ---------- Arranque ----------
 
   document.querySelectorAll(".filtro").forEach((b) => b.addEventListener("click", () => elegirFiltro(b.dataset.filter, false)));
+  $("irHoy").addEventListener("click", () => irAHoy(true));
   diaMostrado = claveDia(new Date());
   renderHoy();
   renderCiclos();
