@@ -343,31 +343,44 @@
   }
   @keyframes espera { to { background-position: -150% 0; } }
 
-  /* "Ir a hoy": baja hasta la línea de hoy, en el calendario. Verde, como "Consultar" en "Quiero Inscribirme". */
-  .ir-hoy-caja { margin: 1.1rem 0 0; }
+  /* "Ir a hoy": flota abajo, al centro de la pantalla, y lleva hasta la línea de hoy en el calendario.
+     Se ve solo mientras esa línea no está a la vista; la flecha apunta hacia donde quedó (ver revisarIrHoy). */
   .ir-hoy {
-    display: inline-flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 1rem;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    z-index: 10;
+    display: flex;
     align-items: center;
-    justify-content: center;
-    gap: .55rem;
-    min-height: 3.2rem;
-    margin: 0;
-    padding: .75em 1.7em;
-    border: 0;
-    border-radius: .55rem;
-    background: var(--verde-fcncs);
-    box-shadow: 0 .22rem 0 #0b4a2e;
-    color: #fff;
-    font: 700 1.1875rem/1 var(--fuente);
+    gap: .4rem;
+    width: -webkit-max-content;
+    width: max-content;
+    margin: 0 auto;
+    padding: .4rem .85rem .42rem 1rem;
+    border: 1.5px solid var(--tinta);
+    border-radius: 99rem;
+    background: var(--blanco);
+    box-shadow: 0 .14rem 0 var(--tinta), 0 .45rem 1.2rem rgba(0, 0, 0, .22);
+    color: var(--tinta);
+    font: 650 .9375rem/1.2 var(--fuente);
     cursor: pointer;
+    transition: opacity .25s ease, transform .25s ease, visibility 0s;
   }
-  .ir-hoy svg { width: 1.1em; height: 1.1em; flex: none; }
+  .ir-hoy svg { width: 1em; height: 1em; flex: none; transition: transform .25s ease; }
+  .ir-hoy.arriba svg { transform: rotate(180deg); }
+  .ir-hoy.oculto {
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(.75rem);
+    transition: opacity .2s ease, transform .2s ease, visibility 0s .2s;
+  }
   @media (hover: hover) {
-    .ir-hoy:hover { background: #167a4d; }
+    .ir-hoy:hover { background: #eef1ff; }
   }
-  .ir-hoy:active { transform: translateY(.12rem); box-shadow: 0 .1rem 0 #0b4a2e; }
-  .ir-hoy:focus-visible { outline: 3px solid #fff; outline-offset: 4px; }
-  .ir-hoy[hidden] { display: none; }
+  .ir-hoy:active { transform: translateY(.1rem); box-shadow: 0 .04rem 0 var(--tinta), 0 .3rem .9rem rgba(0, 0, 0, .22); }
+  .ir-hoy:focus-visible { outline: 3px solid var(--verde-fcncs); outline-offset: 3px; }
 
   .aviso { margin: 0; font-weight: 600; }
   .aviso .reintentar { display: block; }
@@ -654,7 +667,7 @@
     font-size: .8125rem;
     text-shadow: 0 1px 1px rgba(0, 0, 0, .25);
   }
-  .pie .hoja { padding-top: 1.1rem; padding-bottom: 1.75rem; }
+  .pie .hoja { padding-top: 1.1rem; padding-bottom: 4rem; }   /* abajo, lugar para "Ir a hoy" sin tapar la letra */
   .pie p { margin: 0; max-width: 40em; }
   /* Última línea del pie: el calendario en PDF y, a la derecha, la universidad: primero las letras y después el logo. */
   .pie .firma {
@@ -681,7 +694,6 @@
 
   @media (max-width: 30rem) {
     .filtro { padding: .45em .75em .5em; font-size: .9375rem; }
-    .ir-hoy { width: 100%; }
     .ev { grid-template-columns: 2.6rem minmax(0, 1fr); gap: 0 .75rem; }
     .ev .num { font-size: 1.75rem; }
     .ev.quieto .num { font-size: 1.25rem; }
@@ -695,7 +707,8 @@
     .ficha.encurso .res, .ev.encurso:not(.quieto) .res { animation: none; }
     .ahora .espera::after { animation: none; }
     .lleno { transition: none; }
-    .filtro:active, .reintentar:active, .ir-hoy:active { transform: none; }
+    .filtro:active, .reintentar:active, .ir-hoy:active, .ir-hoy.oculto { transform: none; }
+    .ir-hoy, .ir-hoy.oculto, .ir-hoy svg { transition: none; }
   }
 </style>
 </head>
@@ -716,7 +729,7 @@
       <h1>Calendario Académico</h1>
       <p class="frase">Ciclo lectivo <span id="ciclo"><strong>2026</strong></span></p>
       <p class="frase">Hoy es <strong id="hoy">…</strong>.</p>
-      <p class="ir-hoy-caja"><button type="button" class="ir-hoy" id="irHoy" hidden>Ir a hoy<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v14.5M5.5 12.5 12 19l6.5-6.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></p>
+      <button type="button" class="ir-hoy oculto" id="irHoy">Ir a hoy<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v14.5M5.5 12.5 12 19l6.5-6.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 
       <section class="ahora" id="ahora" aria-label="En curso y lo próximo de cada tipo de fecha" aria-live="polite">
         <p class="espera">Cargando el calendario…</p>
@@ -1147,6 +1160,7 @@
   // La lista, mes por mes. La línea de hoy va antes del primer evento que empieza hoy o después.
   function renderLista(hoy, bajarHastaHoy) {
     const caja = $("timelineContainer");
+    pedirRevisionIrHoy();   // la línea de hoy se vuelve a armar: el botón "Ir a hoy" mira de nuevo si está a la vista
     if (!eventos.length) {
       caja.innerHTML = '<p class="nada">No hay eventos cargados en la hoja ' + esc(anioActual) + ".</p>";
       $("resumen").textContent = "";
@@ -1250,6 +1264,25 @@
     });
   }
 
+  // El botón "Ir a hoy" flota abajo, al centro. Se ve mientras la línea de hoy no está en la pantalla
+  // (bajando o subiendo), con la flecha hacia donde quedó; cuando la línea aparece, se va.
+  // Sin línea (cargando, o un filtro sin eventos) no se muestra.
+  let revisionIrHoy = 0;
+  function revisarIrHoy() {
+    revisionIrHoy = 0;
+    const boton = $("irHoy");
+    const linea = $("lineaHoy");
+    if (!linea) { boton.classList.add("oculto"); return; }
+    const r = linea.getBoundingClientRect();
+    const medio = (r.top + r.bottom) / 2;
+    const alto = window.innerHeight || document.documentElement.clientHeight;
+    boton.classList.toggle("oculto", medio > 0 && medio < alto);
+    boton.classList.toggle("arriba", medio <= 0);
+  }
+  function pedirRevisionIrHoy() {   // como mucho una vez por cuadro, aunque el scroll avise muchas veces
+    if (!revisionIrHoy) revisionIrHoy = requestAnimationFrame(revisarIrHoy);
+  }
+
   function itemLista(ev, hoy) {
     const i = ev.inicio;
     const t = TIPO[ev.cat];
@@ -1271,7 +1304,6 @@
     renderAhora(hoy);
     renderProgreso(hoy);
     renderLista(hoy, bajarHastaHoy);
-    $("irHoy").hidden = !eventos.length;
     if (ultimaLectura) {
       $("lastUpdate").textContent = ultimaLectura.toLocaleString("es-AR", {
         day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false
@@ -1317,6 +1349,7 @@
     if (!opc.silencioso) {
       $("ahora").innerHTML = '<p class="espera">Cargando el calendario…</p>';
       $("timelineContainer").innerHTML = '<p class="cargando-lista">Cargando el calendario ' + esc(anioActual) + "…</p>";
+      pedirRevisionIrHoy();
     }
     googleListo().then(() => {
       const hoja = SHEET_CONFIG.sheets[anioActual];
@@ -1367,6 +1400,7 @@
       '<p class="detalle">Si sigue sin cargar, la hoja tiene que estar publicada en la web ' +
       "(Archivo → Compartir → Publicar en la web). Detalle: <code>" + esc(mensaje) + "</code></p>" +
       '<button type="button" class="reintentar">Reintentar</button></div>';
+    pedirRevisionIrHoy();
     document.querySelectorAll(".reintentar").forEach((b) => b.addEventListener("click", () => cargarDatos({})));
   }
 
@@ -1395,6 +1429,9 @@
 
   document.querySelectorAll(".filtro").forEach((b) => b.addEventListener("click", () => elegirFiltro(b.dataset.filter, false)));
   $("irHoy").addEventListener("click", () => irAHoy(true));
+  window.addEventListener("scroll", pedirRevisionIrHoy, { passive: true });
+  window.addEventListener("resize", pedirRevisionIrHoy);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(pedirRevisionIrHoy);   // la letra cambia las alturas
   diaMostrado = claveDia(new Date());
   renderHoy();
   renderCiclos();
